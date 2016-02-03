@@ -26,6 +26,7 @@ class IbrowsBoxalinoExtension extends Extension
         $loader = new Loader\XmlFileLoader($container, new FileLocator(__DIR__ . '/../Resources/config'));
 
         $loader->load('services.xml');
+        $container->setParameter($this->getAlias().'.debug_mode',$config['debug_mode'] );
         $this->registerContainerParametersRecursive($container, $this->getAlias(), $config['access']);
         $this->registerContainerParametersRecursive($container, $this->getAlias(), $config['export']);
         $this->setUpEntities($container, $this->getAlias(), $config['entities']);

@@ -90,7 +90,12 @@ class Exporter
     /**
      * @var array
      */
-    protected $addtionalExports = array();
+    protected $csvFiles = array();
+
+    /**
+     * @var array
+     */
+    protected $additionalExports = array();
 
     /**
      * @var
@@ -118,14 +123,9 @@ class Exporter
     protected $delta = true;
 
     /**
-     * @var array
-     */
-    protected $csvFiles = array();
-
-    /**
      * @var bool
      */
-    protected $dev = true;
+    protected $debugMode = true;
 
 
     /**
@@ -137,10 +137,10 @@ class Exporter
      * @param $account
      * @param $username
      * @param $password
-     * @param string $env
+     * @param bool $debugMode
      */
     public function __construct(ObjectManager $om, array $entities, $exportServer, $exportDir, $account, $username,
-                                $password, $env = 'dev')
+                                $password, $debugMode = true)
     {
         $this->om = $om;
         $this->entities = $entities;
@@ -149,8 +149,7 @@ class Exporter
         $this->account = $account;
         $this->username = $username;
         $this->password = $password;
-        $this->env = $env;
-        $this->dev = $env === 'dev' ? true: false;
+        $this->debugMode = $debugMode;
     }
 
     /**
@@ -162,7 +161,7 @@ class Exporter
             $entityMap = $this->getEntityMap($entity);
             $results = $this->getEntities($entity['class']);
             $this->createCSV($entityMap['tableName'], $entityMap['fields'], $results);
-            if (!empty($this->addtionalExports)) {
+            if (!empty($this->additionalExports)) {
                 $this->createAdditionalCSV($results);
             }
         }
@@ -289,7 +288,7 @@ class Exporter
     {
 
         $headers = array();
-        $this->addtionalExports = array();
+        $this->additionalExports = array();
         foreach ($propertyDescriptions as $key => $field) {
             if (!is_array($field)) {
                 continue;
@@ -308,7 +307,7 @@ class Exporter
                 }
             }
             if (array_key_exists('joinTable', $field)) {
-                $this->addtionalExports[] = array(
+                $this->additionalExports[] = array(
                     'field' => $field['fieldName'],
                     'propertyDescription' => array($field['joinTable']),
                     'tableName' => $field['joinTable']['name'],
@@ -338,6 +337,7 @@ class Exporter
         return fclose($this->fileHandle);
     }
 
+
     /**
      * @param $results
      */
@@ -346,17 +346,17 @@ class Exporter
 
         $accessor = PropertyAccess::createPropertyAccessor();
 
-        foreach ($this->addtionalExports as $addtionalExport) {
-            $file = $this->exportDir . $addtionalExport['tableName'] . '.csv';
+        foreach ($this->additionalExports as $additionalExport) {
+            $file = $this->exportDir . $additionalExport['tableName'] . '.csv';
             $this->openFile($file);
-            $headers = $this->getCSVHeaders($addtionalExport['propertyDescription']);
+            $headers = $this->getCSVHeaders($additionalExport['propertyDescription']);
             $this->addRowToFile($headers);
             foreach ($results as $entity) {
-                $joinResults = $accessor->getValue($entity, $addtionalExport['field']);
+                $joinResults = $accessor->getValue($entity, $additionalExport['field']);
                 foreach ($joinResults as $joinEntity) {
                     $row = array();
 
-                    foreach ($addtionalExport['propertyDescription'] as $key => $field) {
+                    foreach ($additionalExport['propertyDescription'] as $key => $field) {
                         if (array_key_exists('joinColumns', $field)) {
                             foreach ($field['joinColumns'] as $joinColumn) {
                                 $row[] = $accessor->getValue($entity, $joinColumn['referencedColumnName']);
@@ -376,7 +376,7 @@ class Exporter
             }
 
             $this->closeFile();
-            $this->csvFiles[$addtionalExport['tableName'] . '.csv'] = $file;
+            $this->csvFiles[$additionalExport['tableName'] . '.csv'] = $file;
         }
     }
 
@@ -400,11 +400,11 @@ class Exporter
             'username' => $this->username,
             'password' => $this->password,
             'account' =>$this->account,
-            'dev' => $this->dev ? 'true' : 'false',
+            'dev' => $this->debugMode ? 'true' : 'false',
             'delta' => $this->delta ? 'true' : 'false',
             'data' => $this->getCurlFile($this->exportDir . 'export.zip', 'application/zip'),
         );
-        return $this->pushFile($this->dev ? self::URL_ZIP_DEV : self::URL_ZIP,$fields);
+        return $this->pushFile($this->debugMode ? self::URL_ZIP_DEV : self::URL_ZIP,$fields);
     }
 
     /**
@@ -414,7 +414,7 @@ class Exporter
      *
      * @param string $filename
      * @param string $type
-     * @return CURLFile|string
+     * @return \CURLFile|string
      */
     protected function getCurlFile($filename, $type)
     {

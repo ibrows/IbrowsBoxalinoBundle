@@ -31,13 +31,14 @@ class Configuration implements ConfigurationInterface
     {
 
         $node->children()
+                ->booleanNode('debug_mode')->defaultTrue()->end()
                 ->arrayNode('access')
                     ->children()
                         ->scalarNode('host')->defaultValue('cdn.bx-cloud.com')->end()
-                        ->scalarNode('account')->isRequired()->end()
-                        ->scalarNode('username')->isRequired()->end()
-                        ->scalarNode('password')->isRequired()->end()
-                        ->scalarNode('cookie_domain')->isRequired()->end()
+                        ->scalarNode('account')->isRequired()->cannotBeEmpty()->end()
+                        ->scalarNode('username')->isRequired()->cannotBeEmpty()->end()
+                        ->scalarNode('password')->isRequired()->cannotBeEmpty()->end()
+                        ->scalarNode('cookie_domain')->isRequired()->cannotBeEmpty()->end()
                     ->end()
                 ->end()
                 ->arrayNode('export')

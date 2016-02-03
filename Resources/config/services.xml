@@ -20,7 +20,7 @@
             <argument>%ibrows_boxalino.account%</argument>
             <argument>%ibrows_boxalino.username%</argument>
             <argument>%ibrows_boxalino.password%</argument>
-            <argument>%kernel.environment%</argument>
+            <argument>%ibrows_boxalino.debug_mode%</argument>
         </service>
     </services>
 </container>
