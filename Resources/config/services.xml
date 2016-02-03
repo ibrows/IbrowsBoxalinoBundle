@@ -1,0 +1,26 @@
+<?xml version="1.0" ?>
+
+<container xmlns="http://symfony.com/schema/dic/services"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
+
+    <services>
+        <service class="Ibrows\BoxalinoBundle\Helper\HttpP13nService" id="ibrows_boxalino.client.http_p13n_service">
+            <argument>%ibrows_boxalino.host%</argument>
+            <argument>%ibrows_boxalino.account%</argument>
+            <argument>%ibrows_boxalino.username%</argument>
+            <argument>%ibrows_boxalino.password%</argument>
+            <argument>%ibrows_boxalino.cookie_domain%</argument>
+        </service>
+        <service class="Ibrows\BoxalinoBundle\Exporter\Exporter" id="ibrows.exporter.exporter">
+            <argument id="doctrine.orm.entity_manager" type="service"/>
+            <argument>%ibrows_boxalino.entities%</argument>
+            <argument>%ibrows_boxalino.export_server%</argument>
+            <argument>%ibrows_boxalino.export_directory%</argument>
+            <argument>%ibrows_boxalino.account%</argument>
+            <argument>%ibrows_boxalino.username%</argument>
+            <argument>%ibrows_boxalino.password%</argument>
+            <argument>%kernel.environment%</argument>
+        </service>
+    </services>
+</container>
