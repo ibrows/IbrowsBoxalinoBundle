@@ -1,4 +1,3 @@
-
 {
   "name": "ibrows/boxalino-bundle",
   "type": "symfony-bundle",
@@ -14,8 +13,15 @@
   ],
   "require": {
     "php": ">=5.3.3",
-    "symfony/framework-bundle": "!=2.3.9,~2.2"
+    "symfony/framework-bundle": "!=2.3.9,~2.2",
+    "ychadwick/p13n-client-php": "dev-master"
   },
+  "repositories": [
+    {
+      "type": "vcs",
+      "url": "https://github.com/ychadwick/p13n-client-php.git"
+    }
+  ],
   "autoload": {
     "psr-4": { "Ibrows\\BoxalinoBundle\\": "" }
   }
