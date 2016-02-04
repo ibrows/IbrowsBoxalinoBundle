@@ -54,7 +54,6 @@ class HttpP13nService
      */
     public function __construct($host, $account, $username, $password, $cookieDomain)
     {
-        var_dump($host);
         $this->host = $host;
         $this->account = $account;
         $this->username = $username;
