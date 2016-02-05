@@ -10,19 +10,10 @@
 
 namespace ibrows\BoxalinoBundle\Tests\Exporter;
 
+use Ibrows\BoxalinoBundle\Tests\Stub\KernelTestCase;
 
-use Ibrows\BoxalinoBundle\Tests\Application\AppKernel;
-use Symfony\Bundle\FrameworkBundle\Console\Application;
-use Symfony\Component\Console\Input\StringInput;
-use Symfony\Component\Console\Output\StreamOutput;
-use Symfony\Component\DependencyInjection\ContainerBuilder;
-
-class ExporterTest extends \PHPUnit_Framework_TestCase
+class ExporterTest extends KernelTestCase
 {
-    /**
-     * @var  ContainerBuilder;
-     */
-    private $container;
 
     public function testFullExport()
     {
@@ -54,46 +45,5 @@ class ExporterTest extends \PHPUnit_Framework_TestCase
         $csvFiles = $exporter->getCsvFiles();
 
         $this->assertSame(count($csvFiles), 1, 'Only the Brand and Product csv files created');
-    }
-
-    public function setUp()
-    {
-        $kernel = new AppKernel('test', true);
-
-        $kernel->boot();
-
-        $this->runCommand($kernel, 'doctrine:database:drop');
-        $this->runCommand($kernel, 'doctrine:schema:create');
-        $this->runCommand($kernel, 'doctrine:fixtures:load --append  --fixtures="' . dirname(__FILE__) . '/../Fixtures"');
-
-        $this->container = $kernel->getContainer();
-    }
-
-
-    /**
-     * @param AppKernel $kernel
-     * @param $command
-     * @return string|StreamOutput
-     * @throws \Exception
-     */
-    public function runCommand(AppKernel $kernel, $command)
-    {
-        $application = new Application($kernel);
-        $application->setAutoExit(false);
-
-        $fp = tmpfile();
-        $input = new StringInput($command);
-        $output = new StreamOutput($fp);
-
-        $application->run($input, $output);
-
-        fseek($fp, 0);
-        $output = '';
-        while (!feof($fp)) {
-            $output = fread($fp, 4096);
-        }
-        fclose($fp);
-
-        return $output;
     }
 }
