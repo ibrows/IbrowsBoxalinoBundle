@@ -76,6 +76,7 @@ class HttpP13nService
      */
     public function getClient()
     {
+
         if (!$this->client) {
             $this->client = new HttpP13n();
             $this->client->setHost($this->host);
