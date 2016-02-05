@@ -29,7 +29,7 @@ class ExporterTest extends \PHPUnit_Framework_TestCase
         /** @var \Ibrows\BoxalinoBundle\Exporter\Exporter $exporter */
         $exporter = $this->container->get('ibrows_boxalino.exporter.exporter');
 
-        $exporter->exportFull();
+        $exporter->prepareFullExport();
         $response = $exporter->pushZip();
 
         $csvFiles = $exporter->getCsvFiles();
@@ -49,7 +49,7 @@ class ExporterTest extends \PHPUnit_Framework_TestCase
         /** @var \Ibrows\BoxalinoBundle\Exporter\Exporter $exporter */
         $exporter = $this->container->get('ibrows_boxalino.exporter.exporter');
 
-        $exporter->exportPartial('product');
+        $exporter->preparePartialExport('product');
 
         $csvFiles = $exporter->getCsvFiles();
 

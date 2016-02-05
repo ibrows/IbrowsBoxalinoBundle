@@ -47,6 +47,7 @@ class Configuration implements ConfigurationInterface
                     ->children()
                         ->scalarNode('export_server')->defaultValue('http://di1.bx-cloud.com')->end()
                         ->scalarNode('export_directory')->isRequired()->end()
+                        ->scalarNode('properties_xml')->end()
                     ->end()
                 ->end()
                 ->arrayNode('entities')

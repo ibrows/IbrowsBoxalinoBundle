@@ -3,6 +3,7 @@ namespace Ibrows\BoxalinoBundle\Exporter;
 
 use Doctrine\Common\Persistence\ObjectManager;
 use Doctrine\ORM\EntityManager;
+use Symfony\Component\Filesystem\Exception\FileNotFoundException;
 use Symfony\Component\PropertyAccess\PropertyAccess;
 
 /**
@@ -120,7 +121,7 @@ class Exporter
     /**
      * @var bool
      */
-    protected $delta = true;
+    protected $delta = false;
 
     /**
      * @var bool
@@ -132,6 +133,21 @@ class Exporter
      */
     protected $accessor;
 
+    /**
+     * @var
+     */
+    protected $propertiesXml;
+
+    /**
+     * @var
+     */
+    protected $prefix;
+
+    /**
+     * @var array
+     */
+    protected $latestFullLines = array();
+
 
     /**
      * Exporter constructor.
@@ -142,10 +158,11 @@ class Exporter
      * @param $account
      * @param $username
      * @param $password
+     * @param $propertiesXml
      * @param bool $debugMode
      */
     public function __construct(ObjectManager $om, array $entities, $exportServer, $exportDir, $account, $username,
-                                $password, $debugMode = true)
+                                $password, $propertiesXml = null, $debugMode = true)
     {
         $this->om = $om;
         $this->entities = $entities;
@@ -154,24 +171,27 @@ class Exporter
         $this->account = $account;
         $this->username = $username;
         $this->password = $password;
+        $this->propertiesXml = $propertiesXml;
         $this->debugMode = $debugMode;
-        $this->accessor = $accessor = PropertyAccess::createPropertyAccessor();;
+        $this->accessor = $accessor = PropertyAccess::createPropertyAccessor();
     }
 
     /**
      *
      */
-    public function exportFull()
+    public function prepareFullExport()
     {
+        $this->prefix = 'full_';
         $this->createCSVFiles($this->entities);
         $this->createZipFile();
     }
 
-    public function exportPartial($name){
-        if(array_key_exists($name, $this->entities)){
-            $this->createCSVFiles(array($this->entities[$name]));
-            $this->createZipFile();
-        }
+    public function prepareDeltaExport()
+    {
+        $this->prefix = 'delta_';
+        $this->delta = true;
+        $this->createCSVFiles($this->entities);
+        $this->createZipFile();
     }
 
     public function createCSVFiles($entities)
@@ -240,11 +260,16 @@ class Exporter
     public function createCSV($tableName, $propertyDescriptions, $results)
     {
         // prepare file & stream results into it
-        $file = $this->exportDir . $tableName . '.csv';
+        $file = $this->exportDir . $this->prefix.$tableName . '.csv';
+
+        if($this->delta){
+            $this->latestFullLines = $this->getLatestFullLines($tableName);
+        }
+
         $this->openFile($file);
 
         $headers = $this->getCSVHeaders($propertyDescriptions);
-        $this->addRowToFile($headers);
+        $this->addRowToFile($headers, true);
 
         foreach ($results as $entity) {
             $row = array();
@@ -252,11 +277,11 @@ class Exporter
                 if (array_key_exists('joinColumns', $field)) {
                     $joinEntity = $this->accessor->getValue($entity, $key);
                     foreach ($field['joinColumns'] as $joinColumn) {
-                        $row[] = $this->getRow($joinEntity, $joinColumn['referencedColumnName']);
+                        $row[] = $this->getColumnData($joinEntity, $joinColumn['referencedColumnName']);
                     }
                 }
                 if (array_key_exists('columnName', $field)) {
-                    $row[] = $this->getRow($entity, $key);
+                    $row[] = $this->getColumnData($entity, $key);
                 }
 
             }
@@ -272,10 +297,18 @@ class Exporter
      * @param $fileName
      * @return resource
      */
-    protected function openFile($fileName)
+    protected function openFile($fileName, $mode = 'a')
     {
-        @unlink($fileName);
-        return $this->fileHandle = fopen($fileName, 'a');
+        if($mode == 'a'){
+            @unlink($fileName);
+        }
+        return $this->fileHandle = fopen($fileName, $mode);
+    }
+
+    protected function readFile($fileName){
+        $this->openFile($fileName, 'r+');
+
+        return fread($this->fileHandle, filesize($fileName));
     }
 
     /**
@@ -303,13 +336,13 @@ class Exporter
                 }
                 $this->addAdditionalExport($field);
             }
-
         }
 
         return $headers;
     }
 
-    protected function addAdditionalExport(array $field){
+    protected function addAdditionalExport(array $field)
+    {
         if (array_key_exists('joinTable', $field)) {
             $this->additionalExports[] = array(
                 'field' => $field['fieldName'],
@@ -323,11 +356,41 @@ class Exporter
 
     /**
      * @param $row
-     * @return int
+     * @param bool|false $header
+     * @return int|void
      */
-    protected function addRowToFile($row)
+    protected function addRowToFile($row, $header = false)
     {
+        if($this->delta && !$header){
+            if(in_array($this->getCSVLine($row), $this->latestFullLines)){
+                return 0;
+            }
+        }
         return fputcsv($this->fileHandle, $row, self::XML_DELIMITER, self::XML_ENCLOSURE);
+    }
+
+    /**
+     * @param array $row
+     * @return string
+     */
+    protected function getCSVLine(array $row) {
+        # Generate CSV data from array
+        $fh = fopen('php://temp', 'r+');
+        fputcsv($fh, $row, self::XML_DELIMITER, self::XML_ENCLOSURE);
+        rewind($fh);
+        $csv = stream_get_contents($fh);
+        fclose($fh);
+        return rtrim($csv);
+    }
+
+    /**
+     * @param $entity
+     * @param $column
+     * @return mixed
+     */
+    public function getColumnData($entity, $column)
+    {
+        return $this->accessor->getValue($entity, $column);
     }
 
     /**
@@ -346,9 +409,15 @@ class Exporter
 
         foreach ($this->additionalExports as $additionalExport) {
             $file = $this->exportDir . $additionalExport['tableName'] . '.csv';
+
             $this->openFile($file);
             $headers = $this->getCSVHeaders($additionalExport['propertyDescription']);
-            $this->addRowToFile($headers);
+            $this->addRowToFile($headers, true);
+
+
+            if($this->delta){
+                $this->latestFullLines = $this->getLatestFullLines($additionalExport['tableName']);
+            }
 
             foreach ($results as $entity) {
                 $joinResults = $this->accessor->getValue($entity, $additionalExport['field']);
@@ -358,12 +427,12 @@ class Exporter
                     foreach ($additionalExport['propertyDescription'] as $key => $field) {
                         if (array_key_exists('joinColumns', $field)) {
                             foreach ($field['joinColumns'] as $joinColumn) {
-                                $row[] = $this->getRow($entity, $joinColumn['referencedColumnName']);
+                                $row[] = $this->getColumnData($entity, $joinColumn['referencedColumnName']);
                             }
                         }
                         if (array_key_exists('inverseJoinColumns', $field)) {
                             foreach ($field['inverseJoinColumns'] as $joinColumn) {
-                                $row[] = $this->getRow($joinEntity, $joinColumn['referencedColumnName']);
+                                $row[] = $this->getColumnData($joinEntity, $joinColumn['referencedColumnName']);
                             }
                         }
                     }
@@ -374,10 +443,6 @@ class Exporter
             $this->closeFile();
             $this->csvFiles[$additionalExport['tableName'] . '.csv'] = $file;
         }
-    }
-
-    public function getRow($entity, $column){
-        return $this->accessor->getValue($entity, $column);
     }
 
     public function createZipFile()
@@ -397,6 +462,15 @@ class Exporter
     public function getCsvFiles()
     {
         return $this->csvFiles;
+    }
+
+    public function preparePartialExport($name)
+    {
+        $this->prefix = 'delta_';
+        if (array_key_exists($name, $this->entities)) {
+            $this->createCSVFiles(array($this->entities[$name]));
+            $this->createZipFile();
+        }
     }
 
     /**
@@ -464,5 +538,67 @@ class Exporter
         return $responseBody;
     }
 
+    /**
+     * push the data feeds XML configuration file to the boxalino data intelligence
+     *
+     * @return string
+     */
+    public function pushXml()
+    {
 
+        if (!$this->propertiesXml || !file_exists($this->propertiesXml)) {
+            throw new FileNotFoundException(sprintf('The properties xml %s does not exist or is configured
+            incorrectly', $this->propertiesXml));
+        }
+
+        $fields = array(
+            'username' => $this->username,
+            'password' => $this->password,
+            'account' => $this->account,
+            'dev' => $this->debugMode ? 'true' : 'false',
+            'template' => 'standard_source',
+            'xml' => file_get_contents($this->propertiesXml)
+        );
+        return $this->pushFile($this->debugMode ? self::URL_XML_DEV : self::URL_XML, $fields);
+    }
+
+    /**
+     * @param bool|true $debugMode
+     * @return $this
+     */
+    public function setDebugMode($debugMode = true)
+    {
+        $this->debugMode = $debugMode;
+
+        return $this;
+    }
+
+    public function getDebugMode()
+    {
+        return $this->debugMode;
+    }
+
+    /**
+     * @param $propertiesXml
+     * @return $this
+     */
+    public function setPropertiesXml($propertiesXml)
+    {
+        $this->propertiesXml = $propertiesXml;
+
+        return $this;
+    }
+
+    public function getLatestFullLines($tableName){
+        $fullLines = array();
+        $fullFileName = $this->exportDir.'full_'.$tableName.'.csv';
+        if(file_exists($fullFileName)){
+            $fullFile = $this->readFile($fullFileName);
+            $this->closeFile();
+
+            $fullLines = explode(PHP_EOL, $fullFile);
+        }
+
+        return $fullLines;
+    }
 }

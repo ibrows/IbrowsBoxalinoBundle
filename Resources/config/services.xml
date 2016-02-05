@@ -20,6 +20,7 @@
             <argument>%ibrows_boxalino.account%</argument>
             <argument>%ibrows_boxalino.username%</argument>
             <argument>%ibrows_boxalino.password%</argument>
+            <argument>%ibrows_boxalino.properties_xml%</argument>
             <argument>%ibrows_boxalino.debug_mode%</argument>
         </service>
         <service class="Ibrows\BoxalinoBundle\Twig\TwigExtension" id="ibrows_boxalino.twig.twig_extension">
