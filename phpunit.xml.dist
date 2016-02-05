@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<phpunit bootstrap="Tests/autoload.php" colors="true">
+<phpunit bootstrap="Tests/bootstrap.php.dist" colors="true">
     <php>
         <ini name="intl.default_locale" value="en"/>
         <server name="KERNEL_DIR" value="./" />
