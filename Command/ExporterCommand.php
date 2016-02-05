@@ -90,7 +90,7 @@ class ExporterCommand extends ContainerAwareCommand
 
     protected function exportFull()
     {
-        $exporter = $this->getContainer()->get('ibrows.exporter.exporter');
+        $exporter = $this->getContainer()->get('ibrows_boxalino.exporter.exporter');
 
         $exporter->exportFull();
     }

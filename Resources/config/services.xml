@@ -12,7 +12,7 @@
             <argument>%ibrows_boxalino.password%</argument>
             <argument>%ibrows_boxalino.cookie_domain%</argument>
         </service>
-        <service class="Ibrows\BoxalinoBundle\Exporter\Exporter" id="ibrows.exporter.exporter">
+        <service class="Ibrows\BoxalinoBundle\Exporter\Exporter" id="ibrows_boxalino.exporter.exporter">
             <argument id="doctrine.orm.entity_manager" type="service"/>
             <argument>%ibrows_boxalino.entities%</argument>
             <argument>%ibrows_boxalino.export_server%</argument>

@@ -127,6 +127,11 @@ class Exporter
      */
     protected $debugMode = true;
 
+    /**
+     * @var \Symfony\Component\PropertyAccess\PropertyAccessor
+     */
+    protected $accessor;
+
 
     /**
      * Exporter constructor.
@@ -150,6 +155,7 @@ class Exporter
         $this->username = $username;
         $this->password = $password;
         $this->debugMode = $debugMode;
+        $this->accessor = $accessor = PropertyAccess::createPropertyAccessor();;
     }
 
     /**
@@ -157,7 +163,20 @@ class Exporter
      */
     public function exportFull()
     {
-        foreach ($this->entities as $key => $entity) {
+        $this->createCSVFiles($this->entities);
+        $this->createZipFile();
+    }
+
+    public function exportPartial($name){
+        if(array_key_exists($name, $this->entities)){
+            $this->createCSVFiles(array($this->entities[$name]));
+            $this->createZipFile();
+        }
+    }
+
+    public function createCSVFiles($entities)
+    {
+        foreach ($entities as $key => $entity) {
             $entityMap = $this->getEntityMap($entity);
             $results = $this->getEntities($entity['class']);
             $this->createCSV($entityMap['tableName'], $entityMap['fields'], $results);
@@ -165,26 +184,6 @@ class Exporter
                 $this->createAdditionalCSV($results);
             }
         }
-
-        $this->createZipFile();
-        $response = $this->pushZip();
-        var_dump($response);
-    }
-
-    public function createZipFile()
-    {
-        $zip_name = $this->exportDir . 'export.zip';
-        @unlink($zip_name);
-
-        $zip = new \ZipArchive();
-        if ($zip->open($zip_name, \ZipArchive::CREATE) !== TRUE) {
-            return false;
-        }
-
-        foreach($this->csvFiles as $key => $file){
-            $zip->addFile($file, $key);
-        }
-        $zip->close();
     }
 
     /**
@@ -204,17 +203,18 @@ class Exporter
         $entityMap['tableName'] = $classMetadata->getTableName();
 
         foreach ($fields as $field) {
+            $fieldDefinition = false;
             try {
                 $fieldDefinition = $classMetadata->getFieldMapping($field);
             } catch (\Doctrine\ORM\Mapping\MappingException $e) {
-                try {
-                    $fieldDefinition = $classMetadata->getAssociationMapping($field);
-                } catch (\Doctrine\ORM\Mapping\MappingException $e) {
-                    continue;
-                }
             }
-
-            $entityMap['fields'][$field] = $fieldDefinition;
+            try {
+                $fieldDefinition = $classMetadata->getAssociationMapping($field);
+            } catch (\Doctrine\ORM\Mapping\MappingException $e) {
+            }
+            if ($fieldDefinition) {
+                $entityMap['fields'][$field] = $fieldDefinition;
+            }
         }
 
         return $entityMap;
@@ -246,19 +246,17 @@ class Exporter
         $headers = $this->getCSVHeaders($propertyDescriptions);
         $this->addRowToFile($headers);
 
-        $accessor = PropertyAccess::createPropertyAccessor();
-
         foreach ($results as $entity) {
             $row = array();
             foreach ($propertyDescriptions as $key => $field) {
                 if (array_key_exists('joinColumns', $field)) {
-                    $joinEntity = $accessor->getValue($entity, $key);
+                    $joinEntity = $this->accessor->getValue($entity, $key);
                     foreach ($field['joinColumns'] as $joinColumn) {
-                        $row[] = $accessor->getValue($joinEntity, $joinColumn['referencedColumnName']);
+                        $row[] = $this->getRow($joinEntity, $joinColumn['referencedColumnName']);
                     }
                 }
                 if (array_key_exists('columnName', $field)) {
-                    $row[] = $accessor->getValue($entity, $key);
+                    $row[] = $this->getRow($entity, $key);
                 }
 
             }
@@ -286,38 +284,41 @@ class Exporter
      */
     protected function getCSVHeaders($propertyDescriptions)
     {
-
         $headers = array();
         $this->additionalExports = array();
         foreach ($propertyDescriptions as $key => $field) {
-            if (!is_array($field)) {
-                continue;
-            }
-            if (array_key_exists('columnName', $field)) {
-                $headers[] = $field['columnName'];
-            }
-            if (array_key_exists('joinColumns', $field)) {
-                foreach ($field['joinColumns'] as $joinColumn) {
-                    $headers[] = $joinColumn['name'];
+            if (is_array($field)) {
+                if (array_key_exists('columnName', $field)) {
+                    $headers[] = $field['columnName'];
                 }
-            }
-            if (array_key_exists('inverseJoinColumns', $field)) {
-                foreach ($field['inverseJoinColumns'] as $inverseJoinColumns) {
-                    $headers[] = $inverseJoinColumns['name'];
+                if (array_key_exists('joinColumns', $field)) {
+                    foreach ($field['joinColumns'] as $joinColumn) {
+                        $headers[] = $joinColumn['name'];
+                    }
                 }
+                if (array_key_exists('inverseJoinColumns', $field)) {
+                    foreach ($field['inverseJoinColumns'] as $inverseJoinColumns) {
+                        $headers[] = $inverseJoinColumns['name'];
+                    }
+                }
+                $this->addAdditionalExport($field);
             }
-            if (array_key_exists('joinTable', $field)) {
-                $this->additionalExports[] = array(
-                    'field' => $field['fieldName'],
-                    'propertyDescription' => array($field['joinTable']),
-                    'tableName' => $field['joinTable']['name'],
-                    'targetEntity' => $field['targetEntity'],
-                    'sourceEntity' => $field['sourceEntity'],
-                );
-            }
+
         }
 
         return $headers;
+    }
+
+    protected function addAdditionalExport(array $field){
+        if (array_key_exists('joinTable', $field)) {
+            $this->additionalExports[] = array(
+                'field' => $field['fieldName'],
+                'propertyDescription' => array($field['joinTable']),
+                'tableName' => $field['joinTable']['name'],
+                'targetEntity' => $field['targetEntity'],
+                'sourceEntity' => $field['sourceEntity'],
+            );
+        }
     }
 
     /**
@@ -337,38 +338,33 @@ class Exporter
         return fclose($this->fileHandle);
     }
 
-
     /**
      * @param $results
      */
     public function createAdditionalCSV($results)
     {
 
-        $accessor = PropertyAccess::createPropertyAccessor();
-
         foreach ($this->additionalExports as $additionalExport) {
             $file = $this->exportDir . $additionalExport['tableName'] . '.csv';
             $this->openFile($file);
             $headers = $this->getCSVHeaders($additionalExport['propertyDescription']);
             $this->addRowToFile($headers);
+
             foreach ($results as $entity) {
-                $joinResults = $accessor->getValue($entity, $additionalExport['field']);
+                $joinResults = $this->accessor->getValue($entity, $additionalExport['field']);
                 foreach ($joinResults as $joinEntity) {
                     $row = array();
 
                     foreach ($additionalExport['propertyDescription'] as $key => $field) {
                         if (array_key_exists('joinColumns', $field)) {
                             foreach ($field['joinColumns'] as $joinColumn) {
-                                $row[] = $accessor->getValue($entity, $joinColumn['referencedColumnName']);
+                                $row[] = $this->getRow($entity, $joinColumn['referencedColumnName']);
                             }
                         }
                         if (array_key_exists('inverseJoinColumns', $field)) {
                             foreach ($field['inverseJoinColumns'] as $joinColumn) {
-                                $row[] = $accessor->getValue($joinEntity, $joinColumn['referencedColumnName']);
+                                $row[] = $this->getRow($joinEntity, $joinColumn['referencedColumnName']);
                             }
-                        }
-                        if (array_key_exists('columnName', $field)) {
-                            $row[] = $accessor->getValue($entity, $key);
                         }
                     }
                     $this->addRowToFile($row);
@@ -380,13 +376,27 @@ class Exporter
         }
     }
 
-    /**
-     * @param $string
-     * @return int
-     */
-    protected function addStringToFile($string)
+    public function getRow($entity, $column){
+        return $this->accessor->getValue($entity, $column);
+    }
+
+    public function createZipFile()
     {
-        return fwrite($this->fileHandle, $string);
+        $zip_name = $this->exportDir . 'export.zip';
+        @unlink($zip_name);
+
+        $zip = new \ZipArchive();
+        if ($zip->open($zip_name, \ZipArchive::CREATE) == true) {
+            foreach ($this->getCsvFiles() as $key => $file) {
+                $zip->addFile($file, $key);
+            }
+            $zip->close();
+        }
+    }
+
+    public function getCsvFiles()
+    {
+        return $this->csvFiles;
     }
 
     /**
@@ -394,17 +404,17 @@ class Exporter
      *
      * @return string
      */
-    protected function pushZip()
+    public function pushZip()
     {
         $fields = array(
             'username' => $this->username,
             'password' => $this->password,
-            'account' =>$this->account,
+            'account' => $this->account,
             'dev' => $this->debugMode ? 'true' : 'false',
             'delta' => $this->delta ? 'true' : 'false',
-            'data' => $this->getCurlFile($this->exportDir . 'export.zip', 'application/zip'),
+            'data' => $this->getCurlFile($this->getZipFile(), 'application/zip'),
         );
-        return $this->pushFile($this->debugMode ? self::URL_ZIP_DEV : self::URL_ZIP,$fields);
+        return $this->pushFile($this->debugMode ? self::URL_ZIP_DEV : self::URL_ZIP, $fields);
     }
 
     /**
@@ -418,12 +428,19 @@ class Exporter
      */
     protected function getCurlFile($filename, $type)
     {
-        try {
-            if (class_exists('CURLFile')) {
-                return new \CURLFile($filename, $type);
-            }
-        } catch(\Exception $e) {}
+        if (class_exists('CURLFile')) {
+            return new \CURLFile($filename, $type);
+        }
         return "@$filename;type=$type";
+
+    }
+
+    /**
+     * @return string
+     */
+    public function getZipFile()
+    {
+        return $this->exportDir . 'export.zip';
     }
 
     /**
@@ -433,7 +450,8 @@ class Exporter
      * @param array $fields
      * @return string
      */
-    protected function pushFile($url, $fields) {
+    protected function pushFile($url, $fields)
+    {
         $s = curl_init();
         curl_setopt($s, CURLOPT_URL, $url);
         curl_setopt($s, CURLOPT_TIMEOUT, 35000);

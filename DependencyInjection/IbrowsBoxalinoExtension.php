@@ -22,14 +22,16 @@ class IbrowsBoxalinoExtension extends Extension
         $configuration = new Configuration();
         $config = $this->processConfiguration($configuration, $configs);
 
-
         $loader = new Loader\XmlFileLoader($container, new FileLocator(__DIR__ . '/../Resources/config'));
 
         $loader->load('services.xml');
-        $container->setParameter($this->getAlias().'.debug_mode',$config['debug_mode'] );
+        $container->setParameter($this->getAlias() . '.debug_mode', $config['debug_mode']);
         $this->registerContainerParametersRecursive($container, $this->getAlias(), $config['access']);
         $this->registerContainerParametersRecursive($container, $this->getAlias(), $config['export']);
-        $this->setUpEntities($container, $this->getAlias(), $config['entities']);
+        if (array_key_exists('entities', $config)) {
+            $this->setUpEntities($container, $this->getAlias(), $config['entities']);
+        }
+
     }
 
     /**
@@ -59,7 +61,8 @@ class IbrowsBoxalinoExtension extends Extension
      * @param $alias
      * @param $config
      */
-    protected function setUpEntities(ContainerBuilder $container, $alias, $config){
-        $container->setParameter($alias.'.entities', $config);
+    protected function setUpEntities(ContainerBuilder $container, $alias, $config)
+    {
+        $container->setParameter($alias . '.entities', $config);
     }
 }
