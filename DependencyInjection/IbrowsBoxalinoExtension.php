@@ -4,6 +4,7 @@ namespace Ibrows\BoxalinoBundle\DependencyInjection;
 
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\Exception\InvalidArgumentException;
 use Symfony\Component\DependencyInjection\Loader;
 use Symfony\Component\HttpKernel\DependencyInjection\Extension;
 
@@ -28,6 +29,12 @@ class IbrowsBoxalinoExtension extends Extension
         $container->setParameter($this->getAlias() . '.debug_mode', $config['debug_mode']);
         $this->registerContainerParametersRecursive($container, $this->getAlias(), $config['access']);
         $this->registerContainerParametersRecursive($container, $this->getAlias(), $config['export']);
+
+        if($config['export']['properties_xml'] && !file_exists($config['export']['properties_xml'])){
+            throw new InvalidArgumentException(sprintf('The properties xml file was not found at path %s',
+                $config['export']['properties_xml']));
+        }
+
         if (array_key_exists('entities', $config)) {
             $this->setUpEntities($container, $this->getAlias(), $config['entities']);
         }
