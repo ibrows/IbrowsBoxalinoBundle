@@ -181,17 +181,35 @@ class Exporter
      */
     public function prepareFullExport()
     {
+        $this->csvFiles = array();
         $this->prefix = 'full_';
         $this->createCSVFiles($this->entities);
         $this->createZipFile();
     }
 
+    /**
+     *
+     */
     public function prepareDeltaExport()
     {
+        $this->csvFiles = array();
         $this->prefix = 'delta_';
         $this->delta = true;
         $this->createCSVFiles($this->entities);
         $this->createZipFile();
+    }
+
+    /**
+     * @param $name
+     */
+    public function preparePartialExport($name)
+    {
+        $this->csvFiles = array();
+        $this->prefix = 'partial_';
+        if (array_key_exists($name, $this->entities)) {
+            $this->createCSVFiles(array($this->entities[$name]));
+            $this->createZipFile();
+        }
     }
 
     public function createCSVFiles($entities)
@@ -295,6 +313,7 @@ class Exporter
 
     /**
      * @param $fileName
+     * @param string $mode
      * @return resource
      */
     protected function openFile($fileName, $mode = 'a')
@@ -305,10 +324,26 @@ class Exporter
         return $this->fileHandle = fopen($fileName, $mode);
     }
 
-    protected function readFile($fileName){
-        $this->openFile($fileName, 'r+');
+    /**
+     * @return bool
+     */
+    protected function closeFile()
+    {
+        return fclose($this->fileHandle);
+    }
 
-        return fread($this->fileHandle, filesize($fileName));
+    /**
+     * @param $fileName
+     * @return string
+     */
+    protected function readFile($fileName){
+
+        $fh = fopen($fileName, 'r+');
+
+        $content = fread($fh, filesize($fileName));
+
+        fclose($fh);
+        return $content;
     }
 
     /**
@@ -394,22 +429,13 @@ class Exporter
     }
 
     /**
-     * @return bool
-     */
-    protected function closeFile()
-    {
-        return fclose($this->fileHandle);
-    }
-
-    /**
      * @param $results
      */
     public function createAdditionalCSV($results)
     {
 
         foreach ($this->additionalExports as $additionalExport) {
-            $file = $this->exportDir . $additionalExport['tableName'] . '.csv';
-
+            $file = $this->exportDir . $this->prefix .$additionalExport['tableName'] . '.csv';
             $this->openFile($file);
             $headers = $this->getCSVHeaders($additionalExport['propertyDescription']);
             $this->addRowToFile($headers, true);
@@ -464,19 +490,10 @@ class Exporter
         return $this->csvFiles;
     }
 
-    public function preparePartialExport($name)
-    {
-        $this->prefix = 'delta_';
-        if (array_key_exists($name, $this->entities)) {
-            $this->createCSVFiles(array($this->entities[$name]));
-            $this->createZipFile();
-        }
-    }
-
     /**
      * push the data feed ZIP file to the boxalino data intelligence
      *
-     * @return string
+     * @return array()
      */
     public function pushZip()
     {
@@ -488,7 +505,9 @@ class Exporter
             'delta' => $this->delta ? 'true' : 'false',
             'data' => $this->getCurlFile($this->getZipFile(), 'application/zip'),
         );
-        return $this->pushFile($this->debugMode ? self::URL_ZIP_DEV : self::URL_ZIP, $fields);
+        $response = $this->pushFile($this->debugMode ? self::URL_ZIP_DEV : self::URL_ZIP, $fields);
+
+        return json_decode($response, true);
     }
 
     /**
@@ -506,7 +525,6 @@ class Exporter
             return new \CURLFile($filename, $type);
         }
         return "@$filename;type=$type";
-
     }
 
     /**
@@ -559,7 +577,9 @@ class Exporter
             'template' => 'standard_source',
             'xml' => file_get_contents($this->propertiesXml)
         );
-        return $this->pushFile($this->debugMode ? self::URL_XML_DEV : self::URL_XML, $fields);
+        $response = $this->pushFile($this->debugMode ? self::URL_XML_DEV : self::URL_XML, $fields);
+
+        return json_decode($response, true);
     }
 
     /**
@@ -594,7 +614,6 @@ class Exporter
         $fullFileName = $this->exportDir.'full_'.$tableName.'.csv';
         if(file_exists($fullFileName)){
             $fullFile = $this->readFile($fullFileName);
-            $this->closeFile();
 
             $fullLines = explode(PHP_EOL, $fullFile);
         }
