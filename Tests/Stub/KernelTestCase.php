@@ -23,19 +23,27 @@ class KernelTestCase extends \PHPUnit_Framework_TestCase
      */
     protected $container;
 
-    public function setUp()
+    /**
+     * @var Appkernel
+     */
+    protected static $kernel;
+
+    public static function setUpBeforeClass()
     {
-        $kernel = new AppKernel('test', true);
+        self::$kernel = new AppKernel('test', true);
 
-        $kernel->boot();
+        self::$kernel->boot();
 
-        $this->runCommand($kernel, 'doctrine:database:drop');
-        $this->runCommand($kernel, 'doctrine:schema:create');
-        $this->runCommand($kernel, 'doctrine:fixtures:load --append  --fixtures="' . dirname(__FILE__) . '/../Fixtures"');
-
-        $this->container = $kernel->getContainer();
+        self::runCommand(self::$kernel, 'cache:clear');
+        self::runCommand(self::$kernel, 'doctrine:database:drop');
+        self::runCommand(self::$kernel, 'doctrine:schema:create');
+        self::runCommand(self::$kernel, 'doctrine:fixtures:load --append  --fixtures="' . dirname(__FILE__) . '/../Fixtures"');
     }
 
+    public function setUp()
+    {
+        $this->container = self::$kernel->getContainer();
+    }
 
     /**
      * @param AppKernel $kernel
@@ -43,7 +51,7 @@ class KernelTestCase extends \PHPUnit_Framework_TestCase
      * @return string|StreamOutput
      * @throws \Exception
      */
-    public function runCommand(AppKernel $kernel, $command)
+    public static function runCommand(AppKernel $kernel, $command)
     {
         $application = new Application($kernel);
         $application->setAutoExit(false);

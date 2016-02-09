@@ -72,6 +72,7 @@ class DependencyInjectionTest extends \PHPUnit_Framework_TestCase
         $container = $this->getLoadedContainer();
 
         $this->assertTrue($container->hasParameter('ibrows_boxalino.export_directory'), 'The export directory is set');
+        $this->assertTrue(file_exists($container->getParameter('ibrows_boxalino.properties_xml')), 'The properties xml is available');
     }
 
     public function testEntitiesConfig()
@@ -97,6 +98,16 @@ class DependencyInjectionTest extends \PHPUnit_Framework_TestCase
         $this->assertTrue($container->has('ibrows_boxalino.exporter.exporter'), 'Exporter is loaded');
     }
 
+    public function testInvalidPropertiesXml(){
+
+
+        $this->setExpectedException('InvalidArgumentException');
+
+        $config = self::$configs;
+        $config['export']['properties_xml'] = __DIR__.'/../var/wrong_file.xml';
+        $this->getContainer($config);
+    }
+
     /**
      * @param array $configs
      * @return ContainerBuilder
@@ -115,6 +126,8 @@ class DependencyInjectionTest extends \PHPUnit_Framework_TestCase
      */
     private function getLoadedContainer()
     {
-        return $this->getContainer(self::$configs);
+        $config = self::$configs;
+        $config['export']['properties_xml'] = __DIR__.'/../Application/properties.xml';
+        return $this->getContainer($config);
     }
 }

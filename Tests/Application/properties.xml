@@ -1,0 +1,122 @@
+<?xml version="1.0"?>
+<root>
+    <languages>
+        <language id="en"/>
+    </languages>
+    <containers>
+        <container id="products" type="products">
+            <sources>
+                <source id="item_vals" type="item_data_file">
+                    <file value="product.csv"/>
+                    <itemIdColumn value="id"/>
+                    <format value="CSV"/>
+                    <encoding value="UTF-8"/>
+                    <delimiter value=","/>
+                    <enclosure value="&quot;"/>
+                    <escape value="\\"/>
+                    <lineSeparator value="\n"/>
+                </source>
+                <source type="resource" id="resource_brand">
+                    <file value="brand.csv"/>
+                    <referenceIdColumn value="id"/>
+                    <itemIdColumn value="id"/>
+                    <labelColumns>
+                        <language name="en" value="name"/>
+                    </labelColumns>
+                    <format value="CSV"/>
+                    <encoding value="UTF-8"/>
+                    <delimiter value=","/>
+                    <enclosure value="&quot;"/>
+                    <escape value="\\"/>
+                    <lineSeparator value="\n"/>
+                </source>
+                <source type="item_data_file" id="product_category">
+                    <file value="product_category_product.csv"/>
+                    <itemIdColumn value="product_id"/>
+                    <format value="CSV"/>
+                    <encoding value="UTF-8"/>
+                    <delimiter value=","/>
+                    <enclosure value="&quot;"/>
+                    <escape value="\\"/>
+                    <lineSeparator value="\n"/>
+                </source>
+                <source type="resource" id="resource_categories">
+                    <file value="product_category.csv"/>
+                    <referenceIdColumn value="id"/>
+                    <itemIdColumn value="id"/>
+                    <labelColumns>
+                        <language name="en" value="name"/>
+                    </labelColumns>
+                    <format value="CSV"/>
+                    <encoding value="UTF-8"/>
+                    <delimiter value=","/>
+                    <enclosure value="&quot;"/>
+                    <escape value="\\"/>
+                    <lineSeparator value="\n"/>
+                </source>
+            </sources>
+            <properties>
+                <property id="item_id" type="id">
+                    <transform>
+                        <logic source="item_vals" type="direct">
+                            <field column="id"/>
+                        </logic>
+                    </transform>
+                    <params/>
+                </property>
+                <property id="product_id" type="string">
+                    <transform>
+                        <logic source="item_vals" type="direct">
+                            <field column="id"/>
+                        </logic>
+                    </transform>
+                    <params/>
+                </property>
+                <property id="name" type="title">
+                    <transform>
+                        <logic source="item_vals" type="direct">
+                            <field column="name" language="en"/>
+                        </logic>
+                    </transform>
+                    <params/>
+                </property>
+                <property id="price" type="price">
+                    <transform>
+                        <logic source="item_vals" type="direct">
+                            <field column="price"/>
+                        </logic>
+                    </transform>
+                    <params/>
+                </property>
+                <property id="description" type="body">
+                    <transform>
+                        <logic source="item_vals" type="direct">
+                            <field column="description" language="en"/>
+                        </logic>
+                    </transform>
+                    <params/>
+                </property>
+                <property id="category" type="text">
+                    <transform>
+                        <logic source="product_category" type="reference">
+                            <field column="product_category_id"/>
+                        </logic>
+                    </transform>
+                    <params>
+                        <referenceSource value="resource_categories"/>
+                    </params>
+                </property>
+                <property id="brand" type="text">
+                    <transform>
+                        <logic source="item_vals" type="reference">
+                            <field column="brand_id"/>
+                        </logic>
+                    </transform>
+                    <params>
+                        <referenceSource value="resource_brand"/>
+                    </params>
+                </property>
+            </properties>
+        </container>
+    </containers>
+</root>
