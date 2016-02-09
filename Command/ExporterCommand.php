@@ -39,6 +39,7 @@ class ExporterCommand extends ContainerAwareCommand
             ->setDescription('Export configured entities to boxalino')
             ->addOption('sync', null, InputOption::VALUE_REQUIRED, 'Sync strategy, possible values are full, delta, partial, properties', 'full')
             ->addOption('entities', null, InputOption::VALUE_OPTIONAL| InputOption::VALUE_IS_ARRAY, 'Array of entities for partial sync only')
+            ->addOption('properties-xml', null, InputOption::VALUE_OPTIONAL, 'Path to properties xml file will override configured file')
             ->addOption('publish', null, InputOption::VALUE_NONE, 'If the Export should be published')
             ->setHelp(<<<EOT
 The <info>%command.name%</info> exports the properties xml, and csv files to boxalino:
@@ -74,10 +75,11 @@ EOT
         }
 
         $response = null;
+        $style = 'info';
 
         switch ($syncType) {
             case self::SYNC_PROPERTIES:
-                $response = $this->exportProperties();
+                $response = $this->exportProperties($input->getOption('properties-xml'));
                 break;
             case self::SYNC_FULL:
                 $response = $this->exportFull();
@@ -98,7 +100,14 @@ EOT
                 }
                 break;
         }
-        $output->writeln(sprintf('<info>exporter result is "%s"</info>', $response));
+
+        if(array_key_exists('error_type_number', $response)){
+            $style = 'error';
+        }
+
+        $output->writeln(sprintf('<%1$s>Exporter exited with the following error: "%2$s"</%1$s>', $style,
+            $response['message']));
+
 
         return 0;
     }
@@ -112,9 +121,7 @@ EOT
         if(empty($entities)){
             throw new \Exception('Please provide which entities you would like to sync by key');
         }
-        if(!is_array($entities)){
-            $entities = array($entities);
-        }
+
         $ibrowsBoxalinoEntities = $this->getContainer()->getParameter('ibrows_boxalino.entities');
         foreach ($entities as $entity) {
             if(!array_key_exists($entity, $ibrowsBoxalinoEntities)){
