@@ -99,6 +99,10 @@ SCRIPT;
         return $script;
     }
 
+    /**
+     * @param $action
+     * @return string
+     */
     public function getAction($action){
 
         if(substr($action, 0, 5) !== 'track'){
@@ -126,18 +130,38 @@ SCRIPT;
 
     /**
      * @param $account
+     * @return $this
      */
-    public function setAcccount($account)
+    public function setAccount($account)
     {
         $this->account = $account;
+        return $this;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getAccount()
+    {
+        return $this->account;
     }
 
     /**
      * @param RequestStack $requestStack
+     * @return $this
      */
     public function setRequest(RequestStack $requestStack)
     {
         $this->request = $requestStack->getCurrentRequest();
+        return $this;
+    }
+
+    /**
+     * @return Request
+     */
+    public function getRequest()
+    {
+        return $this->request;
     }
 
     /**

@@ -24,7 +24,7 @@
             <argument>%ibrows_boxalino.debug_mode%</argument>
         </service>
         <service class="Ibrows\BoxalinoBundle\Twig\TwigExtension" id="ibrows_boxalino.twig.twig_extension">
-            <call method="setAcccount">
+            <call method="setAccount">
                 <argument>%ibrows_boxalino.account%</argument>
             </call>
             <call method="setRequest">
