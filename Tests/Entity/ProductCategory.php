@@ -4,6 +4,7 @@ namespace Ibrows\BoxalinoBundle\Tests\Entity;
 
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\Mapping as ORM;
+use Ibrows\BoxalinoBundle\Model\DeltaTimestampableInterface;
 
 /**
  * ProductCategory
@@ -11,7 +12,7 @@ use Doctrine\ORM\Mapping as ORM;
  * @ORM\Table()
  * @ORM\Entity()
  */
-class ProductCategory
+class ProductCategory implements DeltaTimestampableInterface
 {
     /**
      * @var int
@@ -184,6 +185,14 @@ class ProductCategory
      * @return string 
      */
     public function getUpdatedAt()
+    {
+        return $this->updatedAt;
+    }
+
+    /**
+     * @return \DateTime
+     */
+    public function getDeltaTimestamp()
     {
         return $this->updatedAt;
     }

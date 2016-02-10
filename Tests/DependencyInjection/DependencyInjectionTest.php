@@ -22,7 +22,7 @@ class DependencyInjectionTest extends \PHPUnit_Framework_TestCase
             'cookie_domain' => "localhost.dev",
         ),
         'export' => array(
-            'export_directory' => "../var/boxalino/"
+            'directory' => "../var/boxalino/"
         ),
         'entities' => array(
             'product' => array(
@@ -49,11 +49,12 @@ class DependencyInjectionTest extends \PHPUnit_Framework_TestCase
         boolean');
         $this->assertSame(true, $container->getParameter('ibrows_boxalino.debug_mode'), 'The debug mode is true');
 
-        $this->assertTrue($container->hasParameter('ibrows_boxalino.host'), 'The host is set');
-        $this->assertSame('cdn.bx-cloud.com', $container->getParameter('ibrows_boxalino.host'), 'The host is same as cdn.bx-cloud.com');
+        $this->assertTrue($container->hasParameter('ibrows_boxalino.access.host'), 'The host is set');
+        $this->assertSame('cdn.bx-cloud.com', $container->getParameter('ibrows_boxalino.access.host'), 'The host is same as
+         cdn.bx-cloud.com');
 
-        $this->assertTrue($container->hasParameter('ibrows_boxalino.export_server'), 'The export Server is set');
-        $this->assertSame('http://di1.bx-cloud.com', $container->getParameter('ibrows_boxalino.export_server'),
+        $this->assertTrue($container->hasParameter('ibrows_boxalino.export.server'), 'The export Server is set');
+        $this->assertSame('http://di1.bx-cloud.com', $container->getParameter('ibrows_boxalino.export.server'),
             'Export Server is http://di1.bx-cloud.com');
     }
 
@@ -61,18 +62,18 @@ class DependencyInjectionTest extends \PHPUnit_Framework_TestCase
     {
         $container = $this->getLoadedContainer();
 
-        $this->assertTrue($container->hasParameter('ibrows_boxalino.account'), 'The account is set');
-        $this->assertTrue($container->hasParameter('ibrows_boxalino.username'), 'The username is set');
-        $this->assertTrue($container->hasParameter('ibrows_boxalino.password'), 'The password is set');
-        $this->assertTrue($container->hasParameter('ibrows_boxalino.cookie_domain'), 'The cookie domain is set');
+        $this->assertTrue($container->hasParameter('ibrows_boxalino.access.account'), 'The account is set');
+        $this->assertTrue($container->hasParameter('ibrows_boxalino.access.username'), 'The username is set');
+        $this->assertTrue($container->hasParameter('ibrows_boxalino.access.password'), 'The password is set');
+        $this->assertTrue($container->hasParameter('ibrows_boxalino.access.cookie_domain'), 'The cookie domain is set');
     }
 
     public function testExportConfig()
     {
         $container = $this->getLoadedContainer();
 
-        $this->assertTrue($container->hasParameter('ibrows_boxalino.export_directory'), 'The export directory is set');
-        $this->assertTrue(file_exists($container->getParameter('ibrows_boxalino.properties_xml')), 'The properties xml is available');
+        $this->assertTrue($container->hasParameter('ibrows_boxalino.export.directory'), 'The export directory is set');
+        $this->assertTrue(file_exists($container->getParameter('ibrows_boxalino.export.properties_xml')), 'The properties xml is available');
     }
 
     public function testEntitiesConfig()

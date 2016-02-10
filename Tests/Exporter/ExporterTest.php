@@ -57,14 +57,14 @@ class ExporterTest extends KernelTestCase
 
     }
 
-    public function testPartialExport(){
-
-        $this->exporter->preparePartialExport('product');
-
-        $csvFiles = $this->exporter->getCsvFiles();
-
-        $this->assertSame(1, count($csvFiles), 'Only the Brand and Product csv files created');
-    }
+//    public function testPartialExport(){
+//
+//        $this->exporter->preparePartialExport('product');
+//
+//        $csvFiles = $this->exporter->getCsvFiles();
+//
+//        $this->assertSame(1, count($csvFiles), 'Only the Brand and Product csv files created');
+//    }
 
     public function testPushXml()
     {
@@ -97,6 +97,7 @@ class ExporterTest extends KernelTestCase
         $entityManager = $this->container->get('doctrine.orm.default_entity_manager');
         $product = $entityManager->find('Ibrows\BoxalinoBundle\Tests\Entity\Product', 1);
         $product->setName('changed');
+        $product->setUpdatedAt(new \DateTime());
         $entityManager->flush($product);
     }
 

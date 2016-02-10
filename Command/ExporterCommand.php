@@ -151,14 +151,15 @@ EOT
     }
 
     /**
+     * Not yet supported
      * @param $name
      * @return string
      */
     protected function exportPartial($name)
     {
-        $this->exporter->preparePartialExport($name);
-
-        return $this->exporter->pushZip();
+//        $this->exporter->preparePartialExport($name);
+//
+//        return $this->exporter->pushZip();
     }
 
     /**

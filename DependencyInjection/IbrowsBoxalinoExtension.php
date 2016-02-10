@@ -26,14 +26,12 @@ class IbrowsBoxalinoExtension extends Extension
         $loader = new Loader\XmlFileLoader($container, new FileLocator(__DIR__ . '/../Resources/config'));
 
         $loader->load('services.xml');
-        $container->setParameter($this->getAlias() . '.debug_mode', $config['debug_mode']);
-        $this->registerContainerParametersRecursive($container, $this->getAlias(), $config['access']);
-        $this->registerContainerParametersRecursive($container, $this->getAlias(), $config['export']);
 
-        if($config['export']['properties_xml'] && !file_exists($config['export']['properties_xml'])){
+        if ($config['export']['properties_xml'] && !file_exists($config['export']['properties_xml'])) {
             throw new InvalidArgumentException(sprintf('The properties xml file was not found at path %s',
                 $config['export']['properties_xml']));
         }
+        $this->registerContainerParametersRecursive($container, $this->getAlias(), $config);
 
         if (array_key_exists('entities', $config)) {
             $this->setUpEntities($container, $this->getAlias(), $config['entities']);
@@ -52,11 +50,13 @@ class IbrowsBoxalinoExtension extends Extension
             new \RecursiveArrayIterator($config),
             \RecursiveIteratorIterator::SELF_FIRST
         );
-        foreach ($iterator as $value) {
+        foreach ($iterator as $key => $value) {
+            if ($key == 'entities') continue;
             $path = array();
             for ($i = 0; $i <= $iterator->getDepth(); $i++) {
                 $path[] = $iterator->getSubIterator($i)->key();
             }
+
             $key = $alias . '.' . implode(".", $path);
 
             $container->setParameter($key, $value);

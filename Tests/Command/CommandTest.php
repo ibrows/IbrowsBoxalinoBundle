@@ -50,13 +50,13 @@ class CommandTest extends KernelTestCase
         $errorMessage = 'The entity IDontExist is not configured to by synced to boxalino';
         $this->assertSame($errorMessage, rtrim($result), 'Export not complete as supplied entity is not configured');
     }
-
-    public function testPartialExport(){
-
-        $result = self::runCommand(self::$kernel, 'ibrows:boxalino:export --sync=partial --entities="product"');
-        $errorMessage = 'Exporter exited with the following error: "account doesn\'t exist"';
-        $this->assertSame($errorMessage, rtrim($result), 'Partial export made but, testing account is invalid');
-    }
+//    Partial Export has been deactivated
+//    public function testPartialExport(){
+//
+//        $result = self::runCommand(self::$kernel, 'ibrows:boxalino:export --sync=partial --entities="product"');
+//        $errorMessage = 'Exporter exited with the following error: "account doesn\'t exist"';
+//        $this->assertSame($errorMessage, rtrim($result), 'Partial export made but, testing account is invalid');
+//    }
 
     public function testPropertyExport(){
 

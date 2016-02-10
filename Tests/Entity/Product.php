@@ -3,6 +3,7 @@
 namespace Ibrows\BoxalinoBundle\Tests\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
+use Ibrows\BoxalinoBundle\Model\DeltaTimestampableInterface;
 
 /**
  * Product
@@ -10,7 +11,7 @@ use Doctrine\ORM\Mapping as ORM;
  * @ORM\Table()
  * @ORM\Entity()
  */
-class Product
+class Product implements DeltaTimestampableInterface
 {
     /**
      * @var int
@@ -206,5 +207,13 @@ class Product
     public function getDescription()
     {
         return $this->description;
+    }
+
+    /**
+     * @return \DateTime
+     */
+    public function getDeltaTimestamp()
+    {
+        return $this->updatedAt;
     }
 }

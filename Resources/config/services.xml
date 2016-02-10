@@ -5,27 +5,48 @@
     xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
 
     <services>
-        <service class="Ibrows\BoxalinoBundle\Helper\HttpP13nService" id="ibrows_boxalino.client.http_p13n_service">
-            <argument>%ibrows_boxalino.host%</argument>
-            <argument>%ibrows_boxalino.account%</argument>
-            <argument>%ibrows_boxalino.username%</argument>
-            <argument>%ibrows_boxalino.password%</argument>
-            <argument>%ibrows_boxalino.cookie_domain%</argument>
+        <service class="Ibrows\BoxalinoBundle\Mapper\ORM\EntityMapper" id="ibrows_boxalino.mapper_orm.entity_mapper">
+            <argument id="doctrine.orm.entity_manager" type="service"/>
+            <tag name="ibrows_boxalino.entity_mapper"/>
         </service>
+
+        <service class="Ibrows\BoxalinoBundle\Provider\ORM\EntityProvider" id="ibrows_boxalino.provider_orm.entity_provider">
+            <argument id="doctrine.orm.entity_manager" type="service"/>
+            <tag name="ibrows_boxalino.entity_provider"/>
+        </service>
+
+        <service class="Ibrows\BoxalinoBundle\Provider\ORM\DeltaProvider" id="ibrows_boxalino.provider_orm.delta_provider">
+            <tag name="ibrows_boxalino.delta_provider"/>
+        </service>
+
+        <service class="Ibrows\BoxalinoBundle\Entity\ExportLogManager" id="ibrows_boxalino.entity.export_log_manager">
+            <argument id="doctrine" type="service"/>
+        </service>
+
+
+        <service class="Ibrows\BoxalinoBundle\Helper\HttpP13nService" id="ibrows_boxalino.client.http_p13n_service">
+            <argument>%ibrows_boxalino.access.host%</argument>
+            <argument>%ibrows_boxalino.access.account%</argument>
+            <argument>%ibrows_boxalino.access.username%</argument>
+            <argument>%ibrows_boxalino.access.password%</argument>
+            <argument>%ibrows_boxalino.access.cookie_domain%</argument>
+        </service>
+
         <service class="Ibrows\BoxalinoBundle\Exporter\Exporter" id="ibrows_boxalino.exporter.exporter">
             <argument id="doctrine.orm.entity_manager" type="service"/>
             <argument>%ibrows_boxalino.entities%</argument>
-            <argument>%ibrows_boxalino.export_server%</argument>
-            <argument>%ibrows_boxalino.export_directory%</argument>
-            <argument>%ibrows_boxalino.account%</argument>
-            <argument>%ibrows_boxalino.username%</argument>
-            <argument>%ibrows_boxalino.password%</argument>
-            <argument>%ibrows_boxalino.properties_xml%</argument>
+            <argument>%ibrows_boxalino.export.server%</argument>
+            <argument>%ibrows_boxalino.export.directory%</argument>
+            <argument>%ibrows_boxalino.access.account%</argument>
+            <argument>%ibrows_boxalino.access.username%</argument>
+            <argument>%ibrows_boxalino.access.password%</argument>
+            <argument>%ibrows_boxalino.export.properties_xml%</argument>
             <argument>%ibrows_boxalino.debug_mode%</argument>
         </service>
+
         <service class="Ibrows\BoxalinoBundle\Twig\TwigExtension" id="ibrows_boxalino.twig.twig_extension">
             <call method="setAccount">
-                <argument>%ibrows_boxalino.account%</argument>
+                <argument>%ibrows_boxalino.access.account%</argument>
             </call>
             <call method="setRequest">
                 <argument type="service" id="request_stack"/>
