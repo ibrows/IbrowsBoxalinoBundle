@@ -54,5 +54,13 @@
             <tag name="twig.extension"/>
         </service>
 
+        <service class="Ibrows\BoxalinoBundle\EventListener\ResponseEventListener" id="ibrows_boxalino.event_listener.response_event_listener">
+            <call method="setHttpP13nService">
+                <argument id="ibrows_boxalino.client.http_p13n_service" type="service"/>
+            </call>
+            <tag name="kernel.event_listener" event="kernel.response" />
+        </service>
+
+
     </services>
 </container>

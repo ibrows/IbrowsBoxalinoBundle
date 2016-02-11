@@ -110,6 +110,22 @@ class HttpP13nService
         return $profileid;
     }
 
+
+    /**
+     * @return string
+     */
+    public function generateSessionId(){
+        $profileid = '';
+        if (function_exists('openssl_random_pseudo_bytes')) {
+            $profileid = bin2hex(openssl_random_pseudo_bytes(24));
+        }
+        if (empty($profileid)) {
+            $profileid = uniqid('', true);
+        }
+
+        return $profileid;
+    }
+
     /**
      * @return Cookie
      */
@@ -119,11 +135,10 @@ class HttpP13nService
     }
 
     /**
-     * @param SessionInterface $session
      * @return Cookie
      */
-    public function createCemsCookie(SessionInterface $session){
-        return new Cookie('cems', md5($session->getId()), 0, '/', null, false, false);
+    public function createCemsCookie(){
+        return new Cookie('cems', $this->generateSessionId(), 0, '/', null, false, false);
     }
 
 
