@@ -510,6 +510,13 @@ class Exporter
                 }
             }
 
+            if ($field->hasInverseJoinFields()) {
+                /** @var FieldMap $joinField */
+                foreach ($field->getInverseJoinFields() as $joinField) {
+                    $headers[] = $joinField->getColumnName();
+                }
+            }
+
             if ($field->getColumnName()) {
                 $headers[] = $field->getColumnName();
             }
