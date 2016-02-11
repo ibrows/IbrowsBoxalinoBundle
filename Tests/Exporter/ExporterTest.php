@@ -24,7 +24,7 @@ class ExporterTest extends KernelTestCase
     {
 
 
-        $this->exporter->prepareFullExport();
+        $this->exporter->prepareExport();
         $response = $this->exporter->pushZip();
 
         $csvFiles = $this->exporter->getCsvFiles();
@@ -57,15 +57,6 @@ class ExporterTest extends KernelTestCase
 
     }
 
-//    public function testPartialExport(){
-//
-//        $this->exporter->preparePartialExport('product');
-//
-//        $csvFiles = $this->exporter->getCsvFiles();
-//
-//        $this->assertSame(1, count($csvFiles), 'Only the Brand and Product csv files created');
-//    }
-
     public function testPushXml()
     {
         $this->exporter->setPropertiesXml(__DIR__.'/../Application/properties.xml');
@@ -85,11 +76,19 @@ class ExporterTest extends KernelTestCase
         $this->exporter->pushXml();
     }
 
-    public function testDebugMode()
+    public function testPublishXml()
     {
-        $this->exporter->setDebugMode(false);
+        $response = $this->exporter->publishXml();
 
-        $this->assertSame(false, $this->exporter->getDebugMode(), 'Debug mode set to false');
+        $this->assertSame(1, $response['error_type_number'], 'XML not published, but a valid connection was made');
+
+    }
+
+    public function testDevIndexMode()
+    {
+        $this->exporter->setDevIndex(false);
+
+        $this->assertSame(false, $this->exporter->getDevIndex(), 'Debug mode set to false');
     }
 
     protected function changeProductEntity(){
@@ -97,7 +96,7 @@ class ExporterTest extends KernelTestCase
         $entityManager = $this->container->get('doctrine.orm.default_entity_manager');
         $product = $entityManager->find('Ibrows\BoxalinoBundle\Tests\Entity\Product', 1);
         $product->setName('changed');
-        $product->setUpdatedAt(new \DateTime());
+        $product->setUpdatedAt(new \DateTime('+1 hour'));
         $entityManager->flush($product);
     }
 
@@ -106,9 +105,17 @@ class ExporterTest extends KernelTestCase
     {
         parent::setUp();
 
-
         $this->exporter = $this->container->get('ibrows_boxalino.exporter.exporter');
     }
+
+//    public function testPartialExport(){
+//
+//        $this->exporter->preparePartialExport('product');
+//
+//        $csvFiles = $this->exporter->getCsvFiles();
+//
+//        $this->assertSame(1, count($csvFiles), 'Only the Brand and Product csv files created');
+//    }
 
 
 }

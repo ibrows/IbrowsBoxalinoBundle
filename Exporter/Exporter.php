@@ -35,6 +35,10 @@ class Exporter
     /**
      *
      */
+    const URL_XML_PUBLISH = 'http://di1.bx-cloud.com/frontend/dbmind/en/dbmind/api/configuration/publish/owner';
+    /**
+     *
+     */
     const URL_ZIP = 'http://di1.bx-cloud.com/frontend/dbmind/en/dbmind/api/data/push';
     /**
      *
@@ -138,7 +142,7 @@ class Exporter
     /**
      * @var bool
      */
-    protected $debugMode = true;
+    protected $devIndex = true;
 
     /**
      * @var \Symfony\Component\PropertyAccess\PropertyAccessor
@@ -149,11 +153,6 @@ class Exporter
      * @var string
      */
     protected $propertiesXml;
-
-    /**
-     * @var string
-     */
-    protected $exportType;
 
     /**
      * @var array
@@ -199,7 +198,7 @@ class Exporter
         $this->username = $username;
         $this->password = $password;
         $this->propertiesXml = $propertiesXml;
-        $this->debugMode = $debugMode;
+        $this->devIndex = $debugMode;
         $this->accessor = $accessor = PropertyAccess::createPropertyAccessor();
     }
 
@@ -246,38 +245,32 @@ class Exporter
     /**
      *
      */
-    public function prepareFullExport()
-    {
-        $this->csvFiles = array();
-        $this->exportType = 'full_';
-        $this->createCSVFiles($this->entities);
-        $this->createZipFile();
-    }
-
-    /**
-     *
-     */
     public function prepareDeltaExport()
     {
-        $this->csvFiles = array();
-        $this->exportType = 'delta_';
         $this->delta = true;
+        $this->prepareExport();
+    }
+
+    public function prepareExport()
+    {
+        $this->csvFiles = array();
         $this->createCSVFiles($this->entities);
         $this->createZipFile();
     }
 
     /**
+     * @Todo: check if we will keep this as it is not standard
      * @param $name
      */
-    public function preparePartialExport($name)
-    {
-        $this->csvFiles = array();
-        $this->exportType = 'partial_';
-        if (array_key_exists($name, $this->entities)) {
-            $this->createCSVFiles(array($this->entities[$name]));
-            $this->createZipFile();
-        }
-    }
+//    public function preparePartialExport($name)
+//    {
+//        $this->csvFiles = array();
+//        $this->exportType = 'partial_';
+//        if (array_key_exists($name, $this->entities)) {
+//            $this->createCSVFiles(array($this->entities[$name]));
+//            $this->createZipFile();
+//        }
+//    }
 
     /**
      * @param array $entities
@@ -327,7 +320,7 @@ class Exporter
     public function logExport($className)
     {
         if ($this->exportLogManager) {
-            $this->exportLogManager->createLogEntry($className, $this->exportType);
+            $this->exportLogManager->createLogEntry($className, $this->delta?'delta':'full');
         }
     }
 
@@ -398,7 +391,7 @@ class Exporter
     public function createCsv(EntityMap $entityMap, $results)
     {
         // prepare file & stream results into it
-        $file = $this->exportDir . $this->exportType . $entityMap->getCsvName() . '.csv';
+        $file = $this->exportDir . $this->getFilePrefix() . $entityMap->getCsvName() . '.csv';
 
         $this->openFile($file);
 
@@ -430,6 +423,14 @@ class Exporter
         $this->csvFiles[$entityMap->getCsvName() . '.csv'] = $file;
     }
 
+    /**
+     * @return string
+     */
+    protected function getFilePrefix()
+    {
+        return $this->delta?'delta_':'full_';
+    }
+
 
 
     /**
@@ -443,7 +444,7 @@ class Exporter
             /** @var EntityMap $entityMap */
             $entityMap = $joinTable->getEntityMap();
 
-            $file = $this->exportDir . $this->exportType . $entityMap->getCsvName() . '.csv';
+            $file = $this->exportDir . $this->getFilePrefix() . $entityMap->getCsvName() . '.csv';
             $this->openFile($file);
             $headers = $this->getCsvHeaders($entityMap);
             $this->addRowToFile($headers, true);
@@ -593,11 +594,11 @@ class Exporter
             'username' => $this->username,
             'password' => $this->password,
             'account' => $this->account,
-            'dev' => $this->debugMode ? 'true' : 'false',
+            'dev' => $this->devIndex ? 'true' : 'false',
             'delta' => $this->delta ? 'true' : 'false',
             'data' => $this->getCurlFile($this->getZipFile(), 'application/zip'),
         );
-        $response = $this->pushFile($this->debugMode ? self::URL_ZIP_DEV : self::URL_ZIP, $fields);
+        $response = $this->pushFile($this->devIndex ? self::URL_ZIP_DEV : self::URL_ZIP, $fields);
 
         return json_decode($response, true);
     }
@@ -650,7 +651,7 @@ class Exporter
 
     /**
      * push the data feeds XML configuration file to the boxalino data intelligence
-     *
+     * @Todo: check if it is valid to push properties xml to a dev index
      * @return string
      */
     public function pushXml()
@@ -665,12 +666,25 @@ class Exporter
             'username' => $this->username,
             'password' => $this->password,
             'account' => $this->account,
-            'dev' => $this->debugMode ? 'true' : 'false',
             'owner' => $this->owner,
             'template' => 'standard_source',
             'xml' => file_get_contents($this->propertiesXml)
         );
-        $response = $this->pushFile($this->debugMode ? self::URL_XML_DEV : self::URL_XML, $fields);
+        //$response = $this->pushFile($this->devIndex ? self::URL_XML_DEV : self::URL_XML, $fields);
+        $response = $this->pushFile(self::URL_XML, $fields);
+
+        return json_decode($response, true);
+    }
+
+    public function publishXml()
+    {
+        $fields = array(
+            'username' => $this->username,
+            'password' => $this->password,
+            'account' => $this->account,
+            'owner' => $this->owner,
+        );
+        $response = $this->pushFile(self::URL_XML_PUBLISH, $fields);
 
         return json_decode($response, true);
     }
@@ -678,18 +692,18 @@ class Exporter
     /**
      * @return bool|true
      */
-    public function getDebugMode()
+    public function getDevIndex()
     {
-        return $this->debugMode;
+        return $this->devIndex;
     }
 
     /**
-     * @param bool|true $debugMode
+     * @param bool|true $devIndex
      * @return $this
      */
-    public function setDebugMode($debugMode = true)
+    public function setDevIndex($devIndex = true)
     {
-        $this->debugMode = $debugMode;
+        $this->devIndex = $devIndex;
 
         return $this;
     }
