@@ -24,7 +24,8 @@ class ResponseEventListener
     /**
      * @param HttpP13nService $httpP13nService
      */
-    public function setHttpP13nService(HttpP13nService $httpP13nService){
+    public function setHttpP13nService(HttpP13nService $httpP13nService)
+    {
         $this->httpP13nService = $httpP13nService;
     }
 
@@ -32,14 +33,11 @@ class ResponseEventListener
      * @param FilterResponseEvent $event
      * @return FilterResponseEvent
      */
-    public function onKernelResponse(FilterResponseEvent $event){
-        if(!$event->getRequest()->cookies->get('cems')){
-            $cemsCookie = $this->httpP13nService->createCemsCookie();
-            $cemvCookie = $this->httpP13nService->createCemvCookie();
-            $event->getResponse()->headers->setCookie($cemsCookie);
-            $event->getResponse()->headers->setCookie($cemvCookie);
+    public function onKernelResponse(FilterResponseEvent $event)
+    {
+        if (!$event->getRequest()->cookies->get('cems')) {
+            $event->getResponse()->headers->setCookie($this->httpP13nService->createCemsCookie());
+            $event->getResponse()->headers->setCookie($this->httpP13nService->createCemvCookie());
         }
-
-        return $event;
     }
 }
