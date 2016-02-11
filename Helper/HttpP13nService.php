@@ -115,7 +115,7 @@ class HttpP13nService
      */
     public function createCemvCookie()
     {
-        return new Cookie('cemv', $this->generateVistorId(), new \DateTime('+3 months'));
+        return new Cookie('cemv', $this->generateVistorId(), new \DateTime('+3 months'), '/', null, false, false);
     }
 
     /**
@@ -123,7 +123,7 @@ class HttpP13nService
      * @return Cookie
      */
     public function createCemsCookie(SessionInterface $session){
-        return new Cookie('cems', md5($session->getId()));
+        return new Cookie('cems', md5($session->getId()), 0, '/', null, false, false);
     }
 
 
