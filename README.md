@@ -49,16 +49,21 @@ Configuration
             password: "somepassword"
             cookie_domain: "localhost.dev"
         export:
-            export_directory: "%kernel.root_dir%/../var/boxalino/"
+            directory: "%kernel.root_dir%/../var/boxalino/" #Where to store the export zip and csv files
+            properties_xml: "%kernel.root_dir%/config/properties.xml" #Which properties.xml file to use
+            log_manager: "ibrows_boxalino.entity.export_log_manager" #Default value, implement you own to log to another system
         entities:
             product:
                 class: "AppBundle\\Entity\\Product"
-                fields: [id, name, description, brand]
+                entity_mapper: "ibrows_boxalino.mapper_orm.entity_mapper" #Default value, implement you own to log to create entity maps
+                entity_provider: "ibrows_boxalino.provider_orm.entity_provider" #Default value, implement you own to retrieve entities
+                delta_provider: "ibrows_boxalino.provider_orm.delta_provider" #Default value, implement you own to provide updated entities
+                fields: [id, name, description, brand] #List of fields to export, generally the accessor on the entity 
             brand:
                 class: "AppBundle\\Entity\\Brand"
-                fields: [id, name, products]
+                fields: [id, name]
             productCategory:
                 class: "AppBundle\\Entity\\ProductCategory"
-                fields: [id, name, products]
+                fields: [id, name]
 
     
