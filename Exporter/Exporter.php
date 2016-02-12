@@ -674,7 +674,6 @@ class Exporter
             'password' => $this->password,
             'account' => $this->account,
             'owner' => $this->owner,
-            'template' => 'standard_source',
             'xml' => file_get_contents($this->propertiesXml)
         );
         //$response = $this->pushFile($this->devIndex ? self::URL_XML_DEV : self::URL_XML, $fields);
@@ -690,6 +689,7 @@ class Exporter
             'password' => $this->password,
             'account' => $this->account,
             'owner' => $this->owner,
+            'publish' => 'true'
         );
         $response = $this->pushFile(self::URL_XML_PUBLISH, $fields);
 
