@@ -71,7 +71,7 @@ class EntityMapper implements EntityMapperInterface
 
         $this->entityMap->setCsvName($classMetadata->getTableName());
 
-        foreach ($fields as $field) {
+        foreach ($fields as $key => $field) {
             $fieldDefinition = false;
             try {
                 $fieldDefinition = $classMetadata->getFieldMapping($field);
@@ -83,7 +83,12 @@ class EntityMapper implements EntityMapperInterface
             }
             if ($fieldDefinition) {
                 $this->addFieldToEntityMap($this->entityMap, $fieldDefinition);
+            }else{
+                $fieldMap = new FieldMap();
+                $fieldMap->setAccessor($field)->setColumnName($key);
+                $this->entityMap->addField($fieldMap);
             }
+
         }
 
         return $this->entityMap;

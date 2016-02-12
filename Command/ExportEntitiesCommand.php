@@ -29,7 +29,10 @@ class ExportEntitiesCommand extends ContainerAwareCommand
      */
     protected $exporter;
 
-
+    /**
+     * @var bool
+     */
+    protected $dryRun = false;
     /**
      * configuration for the command
      */
@@ -40,6 +43,7 @@ class ExportEntitiesCommand extends ContainerAwareCommand
             ->addOption('sync', null, InputOption::VALUE_REQUIRED, 'Sync strategy, possible values are full, delta, partial, properties', 'full')
 //            ->addOption('entities', null, InputOption::VALUE_OPTIONAL| InputOption::VALUE_IS_ARRAY, 'Array of entities for partial sync only')
             ->addOption('push-live', null, InputOption::VALUE_NONE, 'If the Export should be pushed to the Live index, otherwise it is always pushed to dev')
+            ->addOption('dry-run', 'd', InputOption::VALUE_NONE, 'Just create CSV with no push')
             ->setHelp(<<<EOT
 The <info>%command.name%</info> exports the configured entities in csv files to boxalino:
 
@@ -73,6 +77,8 @@ EOT
             $this->exporter->setDevIndex(false);
         }
 
+        $this->dryRun = $input->getOption('dry-run');
+
         switch ($syncType) {
             case self::SYNC_FULL:
                 $this->exportFull($output);
@@ -105,12 +111,10 @@ EOT
     {
         $this->exporter->prepareDeltaExport();
 
-        $response = $this->exporter->pushZip();
-
-        if (array_key_exists('error_type_number', $response)) {
-            $output->writeln(sprintf('<error>Exporter exited with the following message: "%s"</error>', $response['message']));
+        if(!$this->pushZip($output)){
             return false;
         }
+
         $output->writeln('<info>Delta entities successfully exported exported</info>');
         return true;
     }
@@ -123,13 +127,29 @@ EOT
     {
         $this->exporter->prepareExport();
 
+        if(!$this->dryRun){
+            if(!$this->pushZip($output)){
+                return false;
+            }
+        }
+
+        $output->writeln('<info>All entities successfully exported exported</info>');
+        return true;
+    }
+
+    /**
+     * @param OutputInterface $output
+     * @return bool
+     */
+    public function pushZip(OutputInterface $output){
+
         $response = $this->exporter->pushZip();
-        
+
         if (array_key_exists('error_type_number', $response)) {
             $output->writeln(sprintf('<error>Exporter exited with the following message: "%s"</error>', $response['message']));
             return false;
         }
-        $output->writeln('<info>All entities successfully exported exported</info>');
+
         return true;
     }
 

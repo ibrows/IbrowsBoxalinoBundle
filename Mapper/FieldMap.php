@@ -52,11 +52,13 @@ class FieldMap
     }
 
     /**
-     * @param string $columnName
+     * @param $columnName
+     * @return $this
      */
     public function setColumnName($columnName)
     {
         $this->columnName = $columnName;
+        return $this;
     }
 
     /**
@@ -68,11 +70,13 @@ class FieldMap
     }
 
     /**
-     * @param string $accessor
+     * @param $accessor
+     * @return $this
      */
     public function setAccessor($accessor)
     {
         $this->accessor = $accessor;
+        return $this;
     }
 
     /**

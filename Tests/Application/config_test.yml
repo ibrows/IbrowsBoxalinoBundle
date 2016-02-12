@@ -48,10 +48,18 @@ ibrows_boxalino:
     entities:
         product:
             class: "Ibrows\\BoxalinoBundle\\Tests\\Entity\\Product"
-            fields: [id, name, description, brand]
+            fields:
+                id: id
+                name: name
+                description: description
+                brand: brand
         brand:
             class: "Ibrows\\BoxalinoBundle\\Tests\\Entity\\Brand"
-            fields: [id, name, products]
+            fields:
+                id: id
+                name: name
         productCategory:
             class: "Ibrows\\BoxalinoBundle\\Tests\\Entity\\ProductCategory"
-            fields: [id, name, products]
+            fields:
+                id: id
+                name: name

@@ -27,15 +27,15 @@ class DependencyInjectionTest extends \PHPUnit_Framework_TestCase
         'entities' => array(
             'product' => array(
                 'class' => "AppBundle\\Entity\\Product",
-                'fields' => array('id', 'name', 'description', 'brand')
+                'fields' => array('id' => 'id', 'name' => 'name', 'description' => 'description', 'brand' => 'brand')
             ),
             'brand' => array(
                 'class' => "AppBundle\\Entity\\Brand",
-                'fields' => array('id', 'name', 'products')
+                'fields' => array('id' => 'id', 'name' => 'name')
             ),
             'productCategory' => array(
                 'class' => "AppBundle\\Entity\\ProductCategory",
-                'fields' => array('id', 'name', 'products')
+                'fields' => array('id' => 'id', 'name' => 'name')
             )
         )
     );
@@ -85,8 +85,9 @@ class DependencyInjectionTest extends \PHPUnit_Framework_TestCase
         $this->assertTrue(count($container->getParameter('ibrows_boxalino.entities')) == 3, 'The entities are 3
         entities configured');
 
+        $expectedConfig = array('id' => 'id', 'name' => 'name', 'description' => 'description', 'brand' => 'brand');
         $entities = $container->getParameter('ibrows_boxalino.entities');
-        $this->assertSame(array('id', 'name', 'description', 'brand'), $entities['product']['fields'], 'The product
+        $this->assertSame($expectedConfig, $entities['product']['fields'], 'The product
         fields are correctly set');
     }
 
