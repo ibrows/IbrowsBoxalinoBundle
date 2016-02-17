@@ -1,6 +1,9 @@
 <?php
 namespace Ibrows\BoxalinoBundle\Helper;
 
+use com\boxalino\p13n\api\thrift\AutocompleteQuery;
+use com\boxalino\p13n\api\thrift\AutocompleteRequest;
+use com\boxalino\p13n\api\thrift\AutocompleteResponse;
 use com\boxalino\p13n\api\thrift\ChoiceInquiry;
 use com\boxalino\p13n\api\thrift\ChoiceRequest;
 use com\boxalino\p13n\api\thrift\FacetRequest;
@@ -380,5 +383,67 @@ class HttpP13nService
         $this->relaxationEnabled = $relaxationEnabled;
     }
 
+    /**
+     * @param array $returnFields
+     * @param $queryText
+     * @param $offset
+     * @param $hitCount
+     * @param $cemv
+     * @param string $language
+     * @return \com\boxalino\p13n\api\thrift\AutocompleteResponse
+     */
+    public function autocomplete(array $returnFields, $queryText, $offset, $hitCount, $cemv, $language = 'en')
+    {
+
+        // Create main choice request object
+        $choiceRequest = $this->getChoiceRequest();
+        $autocompleteRequest = new AutocompleteRequest();
+
+        // Setup a search query
+        $searchQuery = new SimpleSearchQuery();
+        $searchQuery->indexId = $this->account;
+        $searchQuery->language = $language;
+        $searchQuery->returnFields = $returnFields;
+        $searchQuery->offset = $offset;
+        $searchQuery->hitCount = $hitCount;
+        $searchQuery->queryText = $queryText;
+
+        $autocompleteQuery = new AutocompleteQuery();
+        $autocompleteQuery->indexId = $this->account;;
+        $autocompleteQuery->language = $language;
+        $autocompleteQuery->queryText = $queryText;
+        $autocompleteQuery->suggestionsHitCount = $hitCount;
+        $autocompleteQuery->highlight = true;
+        $autocompleteQuery->highlightPre = '<em>';
+        $autocompleteQuery->highlightPost = '</em>';
+
+        // Add inquiry to choice request
+        $autocompleteRequest->userRecord = $choiceRequest->userRecord;
+        $autocompleteRequest->choiceId = 'autocomplete';
+        $autocompleteRequest->profileId = $cemv;
+        $autocompleteRequest->autocompleteQuery = $autocompleteQuery;
+        $autocompleteRequest->searchChoiceId = 'autocomplete';
+        $autocompleteRequest->searchQuery = $searchQuery;
+        
+        return $choiceResponse = $this->getClient()->autocomplete($autocompleteRequest);
+    }
+
+
+    /**
+     * @param AutocompleteResponse $response
+     * @return array
+     */
+    public function getAutocompleteSuggestions(AutocompleteResponse $response)
+    {
+        $suggestions = array();
+        foreach ($response->hits as $hit) {
+            $suggestions[] = array(
+                'text' => $hit->suggestion,
+                'html' => (strlen($hit->highlighted) ? $hit->highlighted : $hit->suggestion),
+                'hits' => $hit->searchResult->totalHitCount,
+            );
+        }
+        return $suggestions;
+    }
 
 }
