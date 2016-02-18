@@ -30,6 +30,9 @@
             <argument>%ibrows_boxalino.access.username%</argument>
             <argument>%ibrows_boxalino.access.password%</argument>
             <argument>%ibrows_boxalino.access.cookie_domain%</argument>
+            <call method="setLanguage">
+                <argument type="service" id="request_stack" />
+            </call>
         </service>
 
         <service class="Ibrows\BoxalinoBundle\Exporter\Exporter" id="ibrows_boxalino.exporter.exporter">

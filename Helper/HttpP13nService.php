@@ -1,16 +1,20 @@
 <?php
 namespace Ibrows\BoxalinoBundle\Helper;
 
+use com\boxalino\p13n\api\thrift\AutocompleteHit;
 use com\boxalino\p13n\api\thrift\AutocompleteQuery;
 use com\boxalino\p13n\api\thrift\AutocompleteRequest;
 use com\boxalino\p13n\api\thrift\AutocompleteResponse;
 use com\boxalino\p13n\api\thrift\ChoiceInquiry;
 use com\boxalino\p13n\api\thrift\ChoiceRequest;
+use com\boxalino\p13n\api\thrift\ContextItem;
 use com\boxalino\p13n\api\thrift\FacetRequest;
 use com\boxalino\p13n\api\thrift\Filter;
+use com\boxalino\p13n\api\thrift\RequestContext;
 use com\boxalino\p13n\api\thrift\SimpleSearchQuery;
 use com\boxalino\p13n\api\thrift\SortField;
 use Symfony\Component\HttpFoundation\Cookie;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Thrift\HttpP13n;
 
 /**
@@ -54,6 +58,31 @@ class HttpP13nService
      * @var bool
      */
     protected $relaxationEnabled = true;
+
+    /**
+     * @var string
+     */
+    protected $highlightPreTag = '<em>';
+
+    /**
+     * @var string
+     */
+    protected $highlightPostTag = '</em>';
+
+    /**
+     * @var
+     */
+    protected $searchWidgetId = 'search';
+
+    /**
+     * @var
+     */
+    protected $autocompleteWidgetId = 'autocomplete';
+
+    /**
+     * @var string
+     */
+    protected $language = 'en';
 
     /**
      * HttpP13nService constructor.
@@ -122,31 +151,25 @@ class HttpP13nService
 
     /**
      * @param array $returnFields
-     * @param $queryText
-     * @param $offset
-     * @param $hitCount
+     * @param null $queryText
+     * @param int $offset
+     * @param int $hitCount
      * @param array $filters
      * @param array $facets
      * @param array $sortFields
-     * @param string $language
      * @return \com\boxalino\p13n\api\thrift\ChoiceResponse
      */
-    public function search(array $returnFields, $queryText, $offset, $hitCount,
-                           $filters = array(), $facets = array(), $sortFields = array(), $language = 'en')
+    public function search(array $returnFields, $queryText = null, $offset = 0, $hitCount = 12,
+                           $filters = array(), $facets = array(), $sortFields = array())
     {
         $choiceRequest = $this->getChoiceRequest();
         // Setup main choice inquiry object
         $inquiry = new ChoiceInquiry();
-        $inquiry->choiceId = 'search';
+        $inquiry->choiceId = $this->searchWidgetId;
         $inquiry->withRelaxation = $this->relaxationEnabled;
 
-        $searchQuery = new SimpleSearchQuery();
-        $searchQuery->indexId = $this->account;
-        $searchQuery->language = $language;
-        $searchQuery->returnFields = $returnFields;
-        $searchQuery->offset = $offset;
-        $searchQuery->hitCount = $hitCount;
-        $searchQuery->queryText = $queryText;
+        $searchQuery = $this->getSimpleSearchQuery($returnFields, $queryText, $offset, $hitCount);
+
 
         foreach ($filters as $filter) {
             $this->addFilter($searchQuery, $filter);
@@ -196,6 +219,29 @@ class HttpP13nService
         }
 
         return $this->client;
+    }
+
+    /**
+     * @param array $returnFields
+     * @param null $queryText
+     * @param int $offset
+     * @param int $hitCount
+     * @return SimpleSearchQuery
+     */
+    public function getSimpleSearchQuery(array $returnFields, $queryText = null, $offset = 0, $hitCount = 5)
+    {
+        $searchQuery = new SimpleSearchQuery();
+        $searchQuery->indexId = $this->account;
+        $searchQuery->returnFields = $returnFields;
+        if($queryText){
+            $searchQuery->queryText = $queryText;
+        }
+
+        $searchQuery->language = $this->language;
+        $searchQuery->offset = $offset;
+        $searchQuery->hitCount = $hitCount;
+
+        return $searchQuery;
     }
 
     /**
@@ -260,7 +306,7 @@ class HttpP13nService
      */
     public function addSortField(SimpleSearchQuery $searchQuery, $sortField)
     {
-        if(!$sortField instanceof SortField){
+        if (!$sortField instanceof SortField) {
             $sortField = $this->buildSortField($sortField);
         }
         $searchQuery->sortFields[] = $sortField;
@@ -386,13 +432,12 @@ class HttpP13nService
     /**
      * @param array $returnFields
      * @param $queryText
-     * @param $offset
-     * @param $hitCount
      * @param $cemv
-     * @param string $language
-     * @return \com\boxalino\p13n\api\thrift\AutocompleteResponse
+     * @param int $offset
+     * @param int $hitCount
+     * @return AutocompleteResponse
      */
-    public function autocomplete(array $returnFields, $queryText, $offset, $hitCount, $cemv, $language = 'en')
+    public function autocomplete(array $returnFields, $queryText, $cemv, $offset = 0, $hitCount = 5)
     {
 
         // Create main choice request object
@@ -400,32 +445,37 @@ class HttpP13nService
         $autocompleteRequest = new AutocompleteRequest();
 
         // Setup a search query
-        $searchQuery = new SimpleSearchQuery();
-        $searchQuery->indexId = $this->account;
-        $searchQuery->language = $language;
-        $searchQuery->returnFields = $returnFields;
-        $searchQuery->offset = $offset;
-        $searchQuery->hitCount = $hitCount;
-        $searchQuery->queryText = $queryText;
-
-        $autocompleteQuery = new AutocompleteQuery();
-        $autocompleteQuery->indexId = $this->account;;
-        $autocompleteQuery->language = $language;
-        $autocompleteQuery->queryText = $queryText;
-        $autocompleteQuery->suggestionsHitCount = $hitCount;
-        $autocompleteQuery->highlight = true;
-        $autocompleteQuery->highlightPre = '<em>';
-        $autocompleteQuery->highlightPost = '</em>';
+        $searchQuery = $this->getSimpleSearchQuery($returnFields, $queryText, $offset, $hitCount);
+        $autocompleteQuery = $this->getAutocompleteQuery($queryText, $hitCount);
 
         // Add inquiry to choice request
         $autocompleteRequest->userRecord = $choiceRequest->userRecord;
-        $autocompleteRequest->choiceId = 'autocomplete';
+        $autocompleteRequest->choiceId = $this->autocompleteWidgetId;
         $autocompleteRequest->profileId = $cemv;
         $autocompleteRequest->autocompleteQuery = $autocompleteQuery;
-        $autocompleteRequest->searchChoiceId = 'autocomplete';
+        $autocompleteRequest->searchChoiceId = $this->searchWidgetId;
         $autocompleteRequest->searchQuery = $searchQuery;
-        
+
         return $choiceResponse = $this->getClient()->autocomplete($autocompleteRequest);
+    }
+
+    /**
+     * @param $queryText
+     * @param int $hitCount
+     * @return AutocompleteQuery
+     */
+    public function getAutocompleteQuery($queryText, $hitCount = 5)
+    {
+        $autocompleteQuery = new AutocompleteQuery();
+        $autocompleteQuery->indexId = $this->account;;
+        $autocompleteQuery->queryText = $queryText;
+        $autocompleteQuery->suggestionsHitCount = $hitCount;
+        $autocompleteQuery->language = $this->language;
+        $autocompleteQuery->highlight = true;
+        $autocompleteQuery->highlightPre = $this->highlightPreTag;
+        $autocompleteQuery->highlightPost = $this->highlightPostTag;
+
+        return $autocompleteQuery;
     }
 
 
@@ -436,14 +486,172 @@ class HttpP13nService
     public function getAutocompleteSuggestions(AutocompleteResponse $response)
     {
         $suggestions = array();
+        /** @var AutocompleteHit $hit */
         foreach ($response->hits as $hit) {
+            $results = array();
+            $this->extractResultsFromHits($hit->searchResult->hits, $results);
             $suggestions[] = array(
                 'text' => $hit->suggestion,
                 'html' => (strlen($hit->highlighted) ? $hit->highlighted : $hit->suggestion),
+                'searchResults' => $results,
                 'hits' => $hit->searchResult->totalHitCount,
             );
         }
         return $suggestions;
+    }
+
+    /**
+     * @return string
+     */
+    public function getHighlightPreTag()
+    {
+        return $this->highlightPreTag;
+    }
+
+    /**
+     * @param string $highlightPreTag
+     */
+    public function setHighlightPreTag($highlightPreTag)
+    {
+        $this->highlightPreTag = $highlightPreTag;
+    }
+
+    /**
+     * @return string
+     */
+    public function getHighlightPostTag()
+    {
+        return $this->highlightPostTag;
+    }
+
+    /**
+     * @param string $highlightPostTag
+     */
+    public function setHighlightPostTag($highlightPostTag)
+    {
+        $this->highlightPostTag = $highlightPostTag;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getSearchWidgetId()
+    {
+        return $this->searchWidgetId;
+    }
+
+    /**
+     * @param mixed $searchWidgetId
+     */
+    public function setSearchWidgetId($searchWidgetId)
+    {
+        $this->searchWidgetId = $searchWidgetId;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getAutocompleteWidgetId()
+    {
+        return $this->autocompleteWidgetId;
+    }
+
+    /**
+     * @param mixed $autocompleteWidgetId
+     */
+    public function setAutocompleteWidgetId($autocompleteWidgetId)
+    {
+        $this->autocompleteWidgetId = $autocompleteWidgetId;
+    }
+
+    /**
+     * @param array $returnFields
+     * @param $id
+     * @param $role
+     * @param $choiceIds
+     * @param int $offset
+     * @param int $hitCount
+     * @param string $fieldName
+     * @param array $context
+     * @return \com\boxalino\p13n\api\thrift\ChoiceResponse
+     */
+    public function findRawRecommendations(array $returnFields, $id, $role, $choiceIds, $offset = 0, $hitCount = 5,
+                                           $fieldName = 'id', $context = array())
+    {
+        $choiceRequest = $this->getChoiceRequest();
+        $choiceRequest->inquiries = array();
+
+        $contextItems = array();
+
+        // Add context parameters if given
+        if (count($context)) {
+            foreach($context as $key => $value) {
+                if (!is_array($value)) {
+                    $context[$key] = array($value);
+                }
+            }
+            $requestContext = new RequestContext();
+            $requestContext->parameters = $context;
+            $choiceRequest->requestContext = $requestContext;
+        }
+
+        // Setup a context item
+        if (!empty($id)) {
+            $contextItems = array(
+                new ContextItem(array(
+                    'indexId' => $this->account,
+                    'fieldName' => $fieldName,
+                    'contextItemId' => $id,
+                    'role' => $role
+                ))
+            );
+        }
+
+        // Setup a search query
+        $searchQuery = $this->getSimpleSearchQuery($returnFields, null, $offset, $hitCount);
+
+        if (!is_array($choiceIds)) {
+            $choiceIds = array($choiceIds);
+        }
+        foreach ($choiceIds as $choiceId) {
+            // Setup main choice inquiry object
+            $inquiry = new ChoiceInquiry();
+            $inquiry->choiceId = $choiceId;
+            $inquiry->minHitCount = $hitCount;
+
+            // Connect search query to the inquiry
+            $inquiry->simpleSearchQuery = $searchQuery;
+            if (!empty($id))$inquiry->contextItems = $contextItems;
+
+            // Add inquiry to choice request
+            $choiceRequest->inquiries[] = $inquiry;
+        }
+
+        $choiceResponse = $this->choose($choiceRequest);
+
+        return $choiceResponse;
+    }
+
+    /**
+     * @return string
+     */
+    public function getLanguage()
+    {
+        return $this->language;
+    }
+
+    /**
+     * @param string $language
+     */
+    public function setLanguage($language)
+    {
+        if($language instanceof RequestStack){
+            $language = $language->getCurrentRequest()->getLocale();
+        }
+
+
+
+        $this->language = substr($language, 0, 2);
     }
 
 }
