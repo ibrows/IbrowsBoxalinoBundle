@@ -29,7 +29,7 @@ class TranslatableEntityMapper extends EntityMapper
     /**
      * @var array
      */
-    protected $locales = array('en', 'de');
+    protected $locales;
 
     /**
      * EntityMapper constructor.
@@ -46,6 +46,14 @@ class TranslatableEntityMapper extends EntityMapper
     public function setTranslatableListener(TranslatableListener $translatableListener)
     {
         $this->translatableListener = $translatableListener;
+    }
+
+    /**
+     * @param array $locales
+     */
+    public function setLocales(array $locales)
+    {
+        $this->locales = $locales;
     }
 
 

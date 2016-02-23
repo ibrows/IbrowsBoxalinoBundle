@@ -29,10 +29,14 @@ class Configuration implements ConfigurationInterface
 
     public function addAccessData(ArrayNodeDefinition $node)
     {
-
-        $node->children()
+        $node
+            ->children()
                 ->booleanNode('debug_mode')->defaultTrue()->end()
                 ->scalarNode('db_driver')->defaultValue('orm')->end()
+                ->arrayNode('translation_locales')
+                    ->defaultValue(array('en'))
+                    ->prototype('scalar')->end()
+                ->end()
                 ->arrayNode('access')
                     ->addDefaultsIfNotSet()
                     ->children()
