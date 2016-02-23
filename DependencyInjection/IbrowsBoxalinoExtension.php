@@ -25,6 +25,10 @@ class IbrowsBoxalinoExtension extends Extension
 
         $loader = new Loader\XmlFileLoader($container, new FileLocator(__DIR__ . '/../Resources/config'));
 
+        if (strtolower($config['db_driver']) == 'orm') {
+            $loader->load('orm.xml');
+        }
+
         $loader->load('services.xml');
 
         if ($config['export']['properties_xml'] && !file_exists($config['export']['properties_xml'])) {
@@ -36,7 +40,6 @@ class IbrowsBoxalinoExtension extends Extension
         if (array_key_exists('entities', $config)) {
             $this->setUpEntities($container, $this->getAlias(), $config['entities']);
         }
-
     }
 
     /**

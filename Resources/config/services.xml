@@ -5,25 +5,6 @@
     xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
 
     <services>
-        <service class="Ibrows\BoxalinoBundle\Mapper\ORM\EntityMapper" id="ibrows_boxalino.mapper_orm.entity_mapper">
-            <argument id="doctrine.orm.entity_manager" type="service"/>
-            <tag name="ibrows_boxalino.entity_mapper"/>
-        </service>
-
-        <service class="Ibrows\BoxalinoBundle\Provider\ORM\EntityProvider" id="ibrows_boxalino.provider_orm.entity_provider">
-            <argument id="doctrine.orm.entity_manager" type="service"/>
-            <tag name="ibrows_boxalino.entity_provider"/>
-        </service>
-
-        <service class="Ibrows\BoxalinoBundle\Provider\ORM\DeltaProvider" id="ibrows_boxalino.provider_orm.delta_provider">
-            <tag name="ibrows_boxalino.delta_provider"/>
-        </service>
-
-        <service class="Ibrows\BoxalinoBundle\Entity\ExportLogManager" id="ibrows_boxalino.entity.export_log_manager">
-            <argument id="doctrine" type="service"/>
-        </service>
-
-
         <service class="Ibrows\BoxalinoBundle\Helper\HttpP13nService" id="ibrows_boxalino.client.http_p13n_service">
             <argument>%ibrows_boxalino.access.host%</argument>
             <argument>%ibrows_boxalino.access.account%</argument>

@@ -1,0 +1,30 @@
+<?xml version="1.0" ?>
+
+<container xmlns="http://symfony.com/schema/dic/services"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
+
+    <services>
+        <service class="Ibrows\BoxalinoBundle\Mapper\ORM\EntityMapper" id="ibrows_boxalino.mapper_orm.entity_mapper">
+            <argument id="doctrine.orm.entity_manager" type="service"/>
+            <tag name="ibrows_boxalino.entity_mapper"/>
+        </service>
+
+        <service class="Ibrows\BoxalinoBundle\Mapper\ORM\TranslatableEntityMapper"  id="ibrows_boxalino.mapper.orm.translatable_entity_mapper" >
+            <argument id="sonata.admin.entity_manager" type="service"/>
+            <call method="setTranslatableListener">
+                <argument id="stof_doctrine_extensions.listener.translatable" type="service"/>
+            </call>
+            <tag name="ibrows_boxalino.entity_mapper"/>
+        </service>
+
+        <service class="Ibrows\BoxalinoBundle\Provider\ORM\EntityProvider" id="ibrows_boxalino.provider_orm.entity_provider">
+            <argument id="doctrine.orm.entity_manager" type="service"/>
+            <tag name="ibrows_boxalino.entity_provider"/>
+        </service>
+
+        <service class="Ibrows\BoxalinoBundle\Provider\ORM\DeltaProvider" id="ibrows_boxalino.provider_orm.delta_provider">
+            <tag name="ibrows_boxalino.delta_provider"/>
+        </service>
+    </services>
+</container>

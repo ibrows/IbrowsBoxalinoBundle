@@ -32,6 +32,7 @@ class Configuration implements ConfigurationInterface
 
         $node->children()
                 ->booleanNode('debug_mode')->defaultTrue()->end()
+                ->scalarNode('db_driver')->defaultValue('orm')->end()
                 ->arrayNode('access')
                     ->addDefaultsIfNotSet()
                     ->children()
