@@ -3,10 +3,12 @@ namespace Ibrows\BoxalinoBundle\Exporter;
 
 use Doctrine\Common\Persistence\ObjectManager;
 use Doctrine\ORM\EntityManager;
+use Gedmo\Tool\Wrapper\AbstractWrapper;
 use Ibrows\BoxalinoBundle\Mapper\EntityMap;
 use Ibrows\BoxalinoBundle\Mapper\EntityMapperInterface;
 use Ibrows\BoxalinoBundle\Mapper\FieldMap;
 use Ibrows\BoxalinoBundle\Mapper\JoinTableMap;
+use Ibrows\BoxalinoBundle\Mapper\TranslatableFieldMap;
 use Ibrows\BoxalinoBundle\Model\ExportLogManagerInterface;
 use Ibrows\BoxalinoBundle\Provider\DeltaProviderInterface;
 use Ibrows\BoxalinoBundle\Provider\EntityProviderInterface;
@@ -399,7 +401,7 @@ class Exporter
         $this->addRowToFile($headers, true);
         foreach ($results as $entity) {
             $row = array();
-            /** @var FieldMap $field */
+            /** @var FieldMap|TranslatableFieldMap $field */
             foreach ($entityMap->getFields() as $field) {
                 if ($field->hasJoinFields()) {
                     $joinEntity = $this->accessor->getValue($entity, $field->getAccessor());
@@ -408,6 +410,11 @@ class Exporter
                     foreach ($field->getJoinFields() as $joinField) {
                         $row[] = $this->getColumnData($joinEntity, $joinField->getAccessor());
                     }
+                }
+
+                if($field instanceof TranslatableFieldMap){
+                    $row[] = $this->getTranslatableValue($field, $entity);
+                    continue;
                 }
 
                 if ($field->getColumnName()) {
@@ -421,6 +428,19 @@ class Exporter
         $this->closeFile();
 
         $this->csvFiles[$entityMap->getCsvName() . '.csv'] = $file;
+    }
+
+    /**
+     * @param TranslatableFieldMap $field
+     * @param $entity
+     * @return mixed
+     */
+    protected function getTranslatableValue(TranslatableFieldMap $field, $entity)
+    {
+        $wrapped = AbstractWrapper::wrap($entity, $field->getAdapter()->getObjectManager());
+        $data = $field->getAdapter()->findTranslation($wrapped, $field->getLocale(), $field->getAccessor(),$field->getTranslatableClass(), $field->getClass());
+
+        return  $data->getContent();
     }
 
     /**
