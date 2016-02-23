@@ -28,11 +28,6 @@ class EntityMapperPass implements CompilerPassInterface
             $container->removeDefinition('ibrows_boxalino.mapper.orm.translatable_entity_mapper');
         }
 
-        $definition = $container->getDefinition('ibrows_boxalino.mapper.orm.translatable_entity_mapper');
-        $definition->addMethodCall('setLocales', array($container->getParameter('ibrows_boxalino.translation_locales')));
-
-        $definition->addMethodCall('setTranslatableListener', array($container->getDefinition('stof_doctrine_extensions.listener.translatable')));
-
         $definition = $container->findDefinition(
             'ibrows_boxalino.exporter.exporter'
         );
@@ -41,6 +36,8 @@ class EntityMapperPass implements CompilerPassInterface
             'ibrows_boxalino.entity_mapper'
         );
         foreach ($taggedServices as $id => $tags) {
+
+
             $definition->addMethodCall(
                 'addEntityMapper',
                 array($id, new Reference($id))
