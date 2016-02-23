@@ -38,10 +38,8 @@ class IbrowsBoxalinoExtension extends Extension
         if (strtolower($config['db_driver']) == 'orm') {
             $loader->load('orm.xml');
 
-            if($container->hasDefinition('ibrows_boxalino.mapper.orm.translatable_entity_mapper')){
-                $definition = $container->getDefinition('ibrows_boxalino.mapper.orm.translatable_entity_mapper');
-                $definition->addMethodCall('setLocales', array($container->getParameter('ibrows_boxalino.translation_locales')));
-            }
+
+
 
         }
 
