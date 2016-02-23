@@ -83,7 +83,7 @@ class TranslatableEntityMapper extends EntityMapper
             if(array_key_exists('fields', $translationConfig) && in_array($field, $translationConfig['fields'])){
                 foreach($this->locales as $locale){
                     $fieldMap = new TranslatableFieldMap();
-                    $fieldMap->setAccessor($field)
+                    $fieldMap->setPropertyPath($field)
                             ->setColumnName($key.'_'.$locale)
                             ->setTranslatableClass($class)
                             ->setAdapter($adapter)
@@ -109,7 +109,7 @@ class TranslatableEntityMapper extends EntityMapper
                 $this->addFieldToEntityMap($this->entityMap, $fieldDefinition);
             }else{
                 $fieldMap = new FieldMap();
-                $fieldMap->setAccessor($field)->setColumnName($key);
+                $fieldMap->setPropertyPath($field)->setColumnName($key);
                 $this->entityMap->addField($fieldMap);
             }
 

@@ -11,22 +11,22 @@
 namespace Ibrows\BoxalinoBundle\EventListener;
 
 
-use Ibrows\BoxalinoBundle\Helper\HttpP13nService;
+use Ibrows\BoxalinoBundle\Helper\HttpP13nHelper;
 use Symfony\Component\HttpKernel\Event\FilterResponseEvent;
 
 class ResponseEventListener
 {
     /**
-     * @var HttpP13nService
+     * @var HttpP13nHelper
      */
     protected $httpP13nService;
 
     /**
-     * @param HttpP13nService $httpP13nService
+     * @param HttpP13nHelper $httpP13nHelper
      */
-    public function setHttpP13nService(HttpP13nService $httpP13nService)
+    public function setHttpP13nHelper(HttpP13nHelper $httpP13nHelper)
     {
-        $this->httpP13nService = $httpP13nService;
+        $this->httpP13nService = $httpP13nHelper;
     }
 
     /**
@@ -35,9 +35,15 @@ class ResponseEventListener
      */
     public function onKernelResponse(FilterResponseEvent $event)
     {
-        if (!$event->getRequest()->cookies->get('cems')) {
-            $event->getResponse()->headers->setCookie($this->httpP13nService->createCemsCookie());
-            $event->getResponse()->headers->setCookie($this->httpP13nService->createCemvCookie());
+        if (!$cems = $event->getRequest()->cookies->get('cems')) {
+            $cems = $this->httpP13nService->createCemsCookie();
         }
+
+        if (!$cemv = $event->getRequest()->cookies->get('cemv')) {
+            $cemv = $this->httpP13nService->createCemvCookie();
+        }
+
+        $event->getResponse()->headers->setCookie($cems);
+        $event->getResponse()->headers->setCookie($cemv);
     }
 }

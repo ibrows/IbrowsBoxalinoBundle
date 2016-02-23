@@ -13,46 +13,24 @@ namespace Ibrows\BoxalinoBundle\Entity;
 
 use Doctrine\Common\Persistence\ManagerRegistry;
 use Doctrine\Common\Persistence\ObjectManager;
+use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\EntityRepository;
 use Ibrows\BoxalinoBundle\Model\ExportLogManagerInterface;
 
 class ExportLogManager implements ExportLogManagerInterface
 {
     /**
-     * @var ManagerRegistry
+     * @var EntityManager
      */
-    protected $registry;
+    protected $em;
 
     /**
-     * @var string
+     * @param EntityManager $em
      */
-    protected $class = 'Ibrows\BoxalinoBundle\Entity\ExportLog';
-
-    /**
-     * @param ManagerRegistry $registry
-     */
-    public function __construct(ManagerRegistry $registry)
+    public function __construct(EntityManager $em)
     {
-        $this->registry = $registry;
+        $this->em = $em;
     }
-
-    /**
-     * @return string
-     */
-    public function getClass()
-    {
-        return $this->class;
-    }
-
-    /**
-     * @param string $class
-     */
-    public function setClass($class)
-    {
-        $this->class = $class;
-    }
-
-
 
     public function createLogEntry($className, $type)
     {
@@ -63,7 +41,7 @@ class ExportLogManager implements ExportLogManagerInterface
         $this->save($exportLog);
     }
 
-    public function getLastLogEntryTimestamp($entity)
+    public function getLastExportDateTime($entity)
     {
         $exportLog =  $this->findOneBy(array('entity' => $entity), array('executedAt' => 'DESC'));
 
@@ -71,40 +49,8 @@ class ExportLogManager implements ExportLogManagerInterface
             return null;
         }
 
-        return $exportLog->getExecutedAt()->getTimestamp();
+        return $exportLog->getExecutedAt();
 
-    }
-
-    /**
-     * @return ObjectManager
-     */
-    public function getObjectManager()
-    {
-        $manager = $this->registry->getManagerForClass($this->class);
-
-        if (!$manager) {
-            throw new \RuntimeException(sprintf('Unable to find the mapping information for the class %s.'
-                ." Please check the 'auto_mapping' option (http://symfony.com/doc/current/reference/configuration/doctrine.html#configuration-overview)"
-                ." or add the bundle to the 'mappings' section in the doctrine configuration.", $this->class));
-        }
-
-        return $manager;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function findAll()
-    {
-        return $this->getRepository()->findAll();
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function findBy(array $criteria, array $orderBy = null, $limit = null, $offset = null)
-    {
-        return $this->getRepository()->findBy($criteria, $orderBy, $limit, $offset);
     }
 
     /**
@@ -112,23 +58,7 @@ class ExportLogManager implements ExportLogManagerInterface
      */
     public function findOneBy(array $criteria, array $orderBy = null)
     {
-        return $this->getRepository()->findOneBy($criteria, $orderBy);
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function find($id)
-    {
-        return $this->getRepository()->find($id);
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function create()
-    {
-        return new $this->class();
+        return $this->em->getRepository('IbrowsBoxalinoBundle:ExportLog')->findOneBy($criteria, $orderBy);
     }
 
     /**
@@ -136,51 +66,11 @@ class ExportLogManager implements ExportLogManagerInterface
      */
     public function save($entity, $andFlush = true)
     {
-        $this->checkObject($entity);
 
-        $this->getObjectManager()->persist($entity);
-
-        if ($andFlush) {
-            $this->getObjectManager()->flush();
-        }
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function delete($entity, $andFlush = true)
-    {
-        $this->checkObject($entity);
-
-        $this->getObjectManager()->remove($entity);
+        $this->em->persist($entity);
 
         if ($andFlush) {
-            $this->getObjectManager()->flush();
-        }
-    }
-
-    /**
-     * Returns the related Object Repository.
-     *
-     * @return EntityRepository
-     */
-    protected function getRepository()
-    {
-        return $this->getObjectManager()->getRepository($this->class);
-    }
-
-    /**
-     * @param $object
-     *
-     * @throws \InvalidArgumentException
-     */
-    protected function checkObject($object)
-    {
-        if (!$object instanceof $this->class) {
-            throw new \InvalidArgumentException(sprintf(
-                'Object must be instance of %s, %s given',
-                $this->class, is_object($object) ? get_class($object) : gettype($object)
-            ));
+            $this->em->flush();
         }
     }
 }

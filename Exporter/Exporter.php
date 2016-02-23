@@ -14,6 +14,7 @@ use Ibrows\BoxalinoBundle\Provider\DeltaProviderInterface;
 use Ibrows\BoxalinoBundle\Provider\EntityProviderInterface;
 use Symfony\Component\Filesystem\Exception\FileNotFoundException;
 use Symfony\Component\PropertyAccess\PropertyAccess;
+use Symfony\Component\Config\Resource\FileResource;
 
 /**
  * This file is part of the boxalinosandbox  package.
@@ -80,11 +81,6 @@ class Exporter
      * @var array
      */
     protected $entities;
-
-    /**
-     * @var string
-     */
-    protected $exportServer;
 
     /**
      * @var array
@@ -180,21 +176,20 @@ class Exporter
     /**
      * Exporter constructor.
      * @param ObjectManager $om
-     * @param array $entities
-     * @param $exportServer
-     * @param $exportDir
-     * @param $account
-     * @param $username
-     * @param $password
-     * @param null $propertiesXml
-     * @param bool|true $debugMode
+     * @param array         $entities
+     * @param               $exportDir
+     * @param               $account
+     * @param               $username
+     * @param               $password
+     * @param null          $propertiesXml
+     * @param bool|true     $debugMode
      */
-    public function __construct(ObjectManager $om, array $entities, $exportServer, $exportDir, $account, $username,
-                                $password, $propertiesXml = null, $debugMode = true)
-    {
+    public function __construct(
+        ObjectManager $om, array $entities, $exportDir, $account, $username,
+        $password, $propertiesXml = null, $debugMode = true
+    ) {
         $this->om = $om;
         $this->entities = $entities;
-        $this->exportServer = $exportServer;
         $this->exportDir = $exportDir;
         $this->account = $account;
         $this->username = $username;
@@ -202,6 +197,7 @@ class Exporter
         $this->propertiesXml = $propertiesXml;
         $this->devIndex = $debugMode;
         $this->accessor = $accessor = PropertyAccess::createPropertyAccessor();
+        $this->createExportDirectory($exportDir);
     }
 
     /**
@@ -215,7 +211,7 @@ class Exporter
     }
 
     /**
-     * @param $id
+     * @param                       $id
      * @param EntityMapperInterface $entityMapper
      * @return $this
      */
@@ -226,7 +222,7 @@ class Exporter
     }
 
     /**
-     * @param $id
+     * @param                         $id
      * @param EntityProviderInterface $entityProvider
      * @return $this
      */
@@ -322,7 +318,7 @@ class Exporter
     public function logExport($className)
     {
         if ($this->exportLogManager) {
-            $this->exportLogManager->createLogEntry($className, $this->delta?'delta':'full');
+            $this->exportLogManager->createLogEntry($className, $this->delta ? 'delta' : 'full');
         }
     }
 
@@ -344,7 +340,8 @@ class Exporter
      * @param $entity
      * @return array
      */
-    public function getAllEntities($entity){
+    public function getAllEntities($entity)
+    {
         $provider = $this->getEntityProvider($entity['entity_provider']);
         return $provider->getEntities($entity);
     }
@@ -355,17 +352,14 @@ class Exporter
      */
     public function getDeltas($entity)
     {
+        $timestamp = null;
         $provider = $this->getDeltaProvider($entity['delta_provider']);
 
-        $timestamp = $this->exportLogManager->getLastLogEntryTimestamp($entity['class']);
-        $entities = $this->getAllEntities($entity);
-
-        if(!$timestamp){
-            return $entities;
+        if ($this->exportLogManager) {
+            $timestamp = $this->exportLogManager->getLastExportDateTime($entity['class']);
         }
-
-        $provider->setDeltaEntities($entities);
-        return $provider->getDeltaEntities($timestamp);
+        return $provider->getDeltaEntities($timestamp, $entity['class'], $entity['delta']['strategy'],
+            $entity['delta']['strategy_options']);
     }
 
     /**
@@ -388,7 +382,7 @@ class Exporter
 
     /**
      * @param EntityMap $entityMap
-     * @param $results
+     * @param           $results
      */
     public function createCsv(EntityMap $entityMap, $results)
     {
@@ -404,21 +398,21 @@ class Exporter
             /** @var FieldMap|TranslatableFieldMap $field */
             foreach ($entityMap->getFields() as $field) {
                 if ($field->hasJoinFields()) {
-                    $joinEntity = $this->accessor->getValue($entity, $field->getAccessor());
+                    $joinEntity = $this->accessor->getValue($entity, $field->getPropertyPath());
 
                     /** @var FieldMap $joinField */
                     foreach ($field->getJoinFields() as $joinField) {
-                        $row[] = $this->getColumnData($joinEntity, $joinField->getAccessor());
+                        $row[] = $this->getColumnData($joinEntity, $joinField->getPropertyPath());
                     }
                 }
 
-                if($field instanceof TranslatableFieldMap){
+                if ($field instanceof TranslatableFieldMap) {
                     $row[] = $this->getTranslatableValue($field, $entity);
                     continue;
                 }
 
                 if ($field->getColumnName()) {
-                    $row[] = $this->getColumnData($entity, $field->getAccessor());
+                    $row[] = $this->getColumnData($entity, $field->getPropertyPath());
                 }
 
             }
@@ -432,15 +426,15 @@ class Exporter
 
     /**
      * @param TranslatableFieldMap $field
-     * @param $entity
+     * @param                      $entity
      * @return mixed
      */
     protected function getTranslatableValue(TranslatableFieldMap $field, $entity)
     {
         $wrapped = AbstractWrapper::wrap($entity, $field->getAdapter()->getObjectManager());
-        $data = $field->getAdapter()->findTranslation($wrapped, $field->getLocale(), $field->getAccessor(),$field->getTranslatableClass(), $field->getClass());
+        $data = $field->getAdapter()->findTranslation($wrapped, $field->getLocale(), $field->getPropertyPath(), $field->getTranslatableClass(), $field->getClass());
 
-        return  $data->getContent();
+        return $data->getContent();
     }
 
     /**
@@ -448,9 +442,8 @@ class Exporter
      */
     protected function getFilePrefix()
     {
-        return $this->delta?'delta_':'full_';
+        return $this->delta ? 'delta_' : 'full_';
     }
-
 
 
     /**
@@ -470,7 +463,7 @@ class Exporter
             $this->addRowToFile($headers, true);
 
             foreach ($results as $entity) {
-                $joinResults = $this->accessor->getValue($entity, $joinTable->getAccessor());
+                $joinResults = $this->accessor->getValue($entity, $joinTable->getPropertyPath());
 
                 foreach ($joinResults as $joinEntity) {
                     $row = array();
@@ -499,7 +492,7 @@ class Exporter
     }
 
     /**
-     * @param $fileName
+     * @param        $fileName
      * @param string $mode
      * @return resource
      */
@@ -558,7 +551,7 @@ class Exporter
     }
 
     /**
-     * @param $row
+     * @param            $row
      * @param bool|false $header
      * @return int|void
      */
@@ -569,12 +562,12 @@ class Exporter
 
     /**
      * @param $entity
-     * @param $column
+     * @param $propertyPath
      * @return mixed
      */
-    public function getColumnData($entity, $column)
+    public function getColumnData($entity, $propertyPath)
     {
-        return $this->accessor->getValue($entity, $column);
+        return $this->accessor->getValue($entity, $propertyPath);
     }
 
     /**
@@ -620,10 +613,10 @@ class Exporter
         $fields = array(
             'username' => $this->username,
             'password' => $this->password,
-            'account' => $this->account,
-            'dev' => $this->devIndex ? 'true' : 'false',
-            'delta' => $this->delta ? 'true' : 'false',
-            'data' => $this->getCurlFile($this->getZipFile(), 'application/zip'),
+            'account'  => $this->account,
+            'dev'      => $this->devIndex ? 'true' : 'false',
+            'delta'    => $this->delta ? 'true' : 'false',
+            'data'     => $this->getCurlFile($this->getZipFile(), 'application/zip'),
         );
         $response = $this->pushFile($this->devIndex ? self::URL_ZIP_DEV : self::URL_ZIP, $fields);
 
@@ -659,7 +652,7 @@ class Exporter
      * push POST fields to a URL, returning the response
      *
      * @param string $url
-     * @param array $fields
+     * @param array  $fields
      * @return string
      */
     protected function pushFile($url, $fields)
@@ -685,18 +678,23 @@ class Exporter
     {
 
         if (!$this->propertiesXml || !file_exists($this->propertiesXml)) {
-            throw new FileNotFoundException(sprintf('The properties xml %s does not exist or is configured
-            incorrectly', $this->propertiesXml));
+            throw new FileNotFoundException(
+                sprintf(
+                    'The properties xml %s does not exist or is configured
+            incorrectly',
+                    $this->propertiesXml
+                )
+            );
         }
 
         $fields = array(
             'username' => $this->username,
             'password' => $this->password,
-            'account' => $this->account,
-            'owner' => $this->owner,
-            'xml' => file_get_contents($this->propertiesXml)
+            'account'  => $this->account,
+            'owner'    => $this->owner,
+            'xml'      => file_get_contents($this->propertiesXml)
         );
-        //$response = $this->pushFile($this->devIndex ? self::URL_XML_DEV : self::URL_XML, $fields);
+
         $response = $this->pushFile(self::URL_XML, $fields);
 
         return json_decode($response, true);
@@ -707,9 +705,9 @@ class Exporter
         $fields = array(
             'username' => $this->username,
             'password' => $this->password,
-            'account' => $this->account,
-            'owner' => $this->owner,
-            'publish' => 'true'
+            'account'  => $this->account,
+            'owner'    => $this->owner,
+            'publish'  => 'true'
         );
         $response = $this->pushFile(self::URL_XML_PUBLISH, $fields);
 
@@ -760,5 +758,26 @@ class Exporter
         $this->propertiesXml = $propertiesXml;
 
         return $this;
+    }
+
+    /**
+     * @param $exportDir
+     * @return string
+     * @throws \Exception
+     */
+    protected function createExportDirectory($exportDir){
+        if(!file_exists($exportDir) || !is_writable($exportDir)) {
+            if(!file_exists($exportDir)) {
+                @mkdir($exportDir,0755);
+            }
+            if(!is_writable($exportDir)) {
+                @chmod($exportDir,0755);
+            }
+            if(!file_exists($exportDir) || !is_writable($exportDir)) {
+                throw new \Exception("Sorry, Please create ".$exportDir."/ and SET Mode 0755 or any Writable Permission!" , 100);
+            }
+        }
+
+        return $exportDir;
     }
 }

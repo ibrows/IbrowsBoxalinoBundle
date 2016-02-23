@@ -85,7 +85,7 @@ class EntityMapper implements EntityMapperInterface
                 $this->addFieldToEntityMap($this->entityMap, $fieldDefinition);
             }else{
                 $fieldMap = new FieldMap();
-                $fieldMap->setAccessor($field)->setColumnName($key);
+                $fieldMap->setPropertyPath($field)->setColumnName($key);
                 $this->entityMap->addField($fieldMap);
             }
 
@@ -104,7 +104,7 @@ class EntityMapper implements EntityMapperInterface
         $fieldMap = new FieldMap();
 
         if(array_key_exists('fieldName', $fieldDefinition)) {
-            $fieldMap->setAccessor($fieldDefinition['fieldName']);
+            $fieldMap->setPropertyPath($fieldDefinition['fieldName']);
         }
 
         if(array_key_exists('columnName', $fieldDefinition)){
@@ -125,7 +125,7 @@ class EntityMapper implements EntityMapperInterface
             $this->addFieldToEntityMap($joinEntityMap, $fieldDefinition['joinTable']);
 
             $joinTableMap = new JoinTableMap();
-            $joinTableMap->setAccessor($fieldDefinition['fieldName']);
+            $joinTableMap->setPropertyPath($fieldDefinition['fieldName']);
             $joinTableMap->setEntityMap($joinEntityMap);
 
             $fieldMap->setJoinTable($joinTableMap);
@@ -145,7 +145,7 @@ class EntityMapper implements EntityMapperInterface
         foreach($joinColumns as $fieldDefinition){
             $joinColumnField = new FieldMap();
 
-            $joinColumnField->setAccessor($fieldDefinition['referencedColumnName']);
+            $joinColumnField->setPropertyPath($fieldDefinition['referencedColumnName']);
             $joinColumnField->setColumnName($fieldDefinition['name']);
             if (array_key_exists('joinColumns', $fieldDefinition)) {
                 $joinColumnField->setJoinFields($this->getJoinFields($fieldDefinition['joinColumns']));

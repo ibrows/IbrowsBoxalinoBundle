@@ -2,11 +2,14 @@
 
 namespace Ibrows\BoxalinoBundle\DependencyInjection;
 
+use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\Config\FileLocator;
+use Symfony\Component\Config\Resource\FileResource;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Exception\InvalidArgumentException;
 use Symfony\Component\DependencyInjection\Loader;
 use Symfony\Component\HttpKernel\DependencyInjection\Extension;
+use Symfony\Component\Validator\Exception\MissingOptionsException;
 
 /**
  * This is the class that loads and manages your bundle configuration.
@@ -37,10 +40,6 @@ class IbrowsBoxalinoExtension extends Extension
 
         if (strtolower($config['db_driver']) == 'orm') {
             $loader->load('orm.xml');
-
-
-
-
         }
 
         $loader->load('services.xml');
@@ -73,10 +72,10 @@ class IbrowsBoxalinoExtension extends Extension
     /**
      * @param ContainerBuilder $container
      * @param $alias
-     * @param $config
+     * @param $entities
      */
-    protected function setUpEntities(ContainerBuilder $container, $alias, $config)
+    protected function setUpEntities(ContainerBuilder $container, $alias, $entities)
     {
-        $container->setParameter($alias . '.entities', $config);
+        $container->setParameter($alias . '.entities', $entities);
     }
 }
