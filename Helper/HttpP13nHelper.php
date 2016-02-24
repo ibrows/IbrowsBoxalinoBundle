@@ -93,11 +93,13 @@ class HttpP13nHelper
     }
 
     /**
+     * @param null $cemv
      * @return Cookie
      */
-    public function createCemvCookie()
+    public function createCemvCookie($cemv = null)
     {
-        return new Cookie('cemv', $this->generateVistorId(), new \DateTime('+3 months'), '/', null, false, false);
+        $cemv = is_null($cemv) ? $this->generateVistorId() : $cemv;
+        return new Cookie('cemv', $cemv, new \DateTime('+3 months'), '/', null, false, false);
     }
 
     /**
@@ -117,11 +119,13 @@ class HttpP13nHelper
     }
 
     /**
+     * @param null $cems
      * @return Cookie
      */
-    public function createCemsCookie()
+    public function createCemsCookie($cems = null)
     {
-        return new Cookie('cems', $this->generateSessionId(), 0, '/', null, false, false);
+        $cems = is_null($cems) ? $this->generateSessionId() : $cems;
+        return new Cookie('cems', $cems, 0, '/', null, false, false);
     }
 
     /**
