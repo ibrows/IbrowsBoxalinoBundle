@@ -14,7 +14,6 @@ use Ibrows\BoxalinoBundle\Provider\DeltaProviderInterface;
 use Ibrows\BoxalinoBundle\Provider\EntityProviderInterface;
 use Symfony\Component\Filesystem\Exception\FileNotFoundException;
 use Symfony\Component\PropertyAccess\PropertyAccess;
-use Symfony\Component\Config\Resource\FileResource;
 
 /**
  * This file is part of the boxalinosandbox  package.
