@@ -53,7 +53,7 @@ class ExporterTest extends KernelTestCase
         }
         fclose($fh);
 
-        $this->assertSame(4, count($rows), 'Only four lines in the csv file');
+        $this->assertSame(2, count($rows), 'Only four lines in the csv file');
 
     }
 
