@@ -98,24 +98,8 @@ class HttpP13nHelper
      */
     public function createCemvCookie($cemv = null)
     {
-        $cemv = is_null($cemv) ? $this->generateVistorId() : $cemv;
+        $cemv = is_null($cemv) ? $this->generateRandomId() : $cemv;
         return new Cookie('cemv', $cemv, new \DateTime('+3 months'), '/', null, false, false);
-    }
-
-    /**
-     * @return string
-     */
-    public function generateVistorId()
-    {
-        $profileid = '';
-        if (function_exists('openssl_random_pseudo_bytes')) {
-            $profileid = bin2hex(openssl_random_pseudo_bytes(16));
-        }
-        if (empty($profileid)) {
-            $profileid = uniqid('', true);
-        }
-
-        return $profileid;
     }
 
     /**
@@ -124,24 +108,24 @@ class HttpP13nHelper
      */
     public function createCemsCookie($cems = null)
     {
-        $cems = is_null($cems) ? $this->generateSessionId() : $cems;
+        $cems = is_null($cems) ? $this->generateRandomId(24) : $cems;
         return new Cookie('cems', $cems, 0, '/', null, false, false);
     }
 
     /**
+     * @param int $bytes
      * @return string
      */
-    public function generateSessionId()
-    {
-        $profileid = '';
+    public function generateRandomId($bytes = 16){
+        $id = '';
         if (function_exists('openssl_random_pseudo_bytes')) {
-            $profileid = bin2hex(openssl_random_pseudo_bytes(24));
+            $id = bin2hex(openssl_random_pseudo_bytes($bytes));
         }
-        if (empty($profileid)) {
-            $profileid = uniqid('', true);
+        if (empty($id)) {
+            $id = uniqid('', true);
         }
 
-        return $profileid;
+        return $id;
     }
 
     /**
