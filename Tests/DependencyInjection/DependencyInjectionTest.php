@@ -19,7 +19,6 @@ class DependencyInjectionTest extends \PHPUnit_Framework_TestCase
             'account' => "test",
             'username' => "test",
             'password' => "test",
-            'cookie_domain' => "localhost.dev",
         ),
         'export' => array(
             'directory' => "../var/boxalino/"
@@ -49,13 +48,6 @@ class DependencyInjectionTest extends \PHPUnit_Framework_TestCase
         boolean');
         $this->assertSame(true, $container->getParameter('ibrows_boxalino.debug_mode'), 'The debug mode is true');
 
-        $this->assertTrue($container->hasParameter('ibrows_boxalino.access.host'), 'The host is set');
-        $this->assertSame('cdn.bx-cloud.com', $container->getParameter('ibrows_boxalino.access.host'), 'The host is same as
-         cdn.bx-cloud.com');
-
-        $this->assertTrue($container->hasParameter('ibrows_boxalino.export.server'), 'The export Server is set');
-        $this->assertSame('http://di1.bx-cloud.com', $container->getParameter('ibrows_boxalino.export.server'),
-            'Export Server is http://di1.bx-cloud.com');
     }
 
     public function testAccessConfig()
@@ -65,7 +57,6 @@ class DependencyInjectionTest extends \PHPUnit_Framework_TestCase
         $this->assertTrue($container->hasParameter('ibrows_boxalino.access.account'), 'The account is set');
         $this->assertTrue($container->hasParameter('ibrows_boxalino.access.username'), 'The username is set');
         $this->assertTrue($container->hasParameter('ibrows_boxalino.access.password'), 'The password is set');
-        $this->assertTrue($container->hasParameter('ibrows_boxalino.access.cookie_domain'), 'The cookie domain is set');
     }
 
     public function testExportConfig()
@@ -96,7 +87,7 @@ class DependencyInjectionTest extends \PHPUnit_Framework_TestCase
         $container = $this->getLoadedContainer();
 
         $this->assertTrue($container->has('ibrows_boxalino.twig.twig_extension'), 'Twig extension loaded');
-        $this->assertTrue($container->has('ibrows_boxalino.client.http_p13n_service'), 'Http p13n client loaded');
+        $this->assertTrue($container->has('ibrows_boxalino.client.http_p13n_helper'), 'Http p13n client loaded');
         $this->assertTrue($container->has('ibrows_boxalino.exporter.exporter'), 'Exporter is loaded');
     }
 

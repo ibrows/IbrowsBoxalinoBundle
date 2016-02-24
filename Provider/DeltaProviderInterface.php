@@ -13,15 +13,13 @@ namespace Ibrows\BoxalinoBundle\Provider;
 
 interface DeltaProviderInterface
 {
-    /**
-     * @param $timestamp
-     * @return array
-     */
-    public function getDeltaEntities($timestamp);
 
     /**
-     * @param $entities
+     * @param \DateTime $dateTime
+     * @param $className
+     * @param $strategy
+     * @param $strategyOptions
      * @return mixed
      */
-    public function setDeltaEntities($entities);
+    public function getDeltaEntities(\DateTime $dateTime, $className, $strategy, $strategyOptions);
 }

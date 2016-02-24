@@ -16,7 +16,7 @@ class JoinTableMap
     /**
      * @var string
      */
-    protected $accessor;
+    protected $propertyPath;
 
     /**
      * @var EntityMap
@@ -26,17 +26,17 @@ class JoinTableMap
     /**
      * @return string
      */
-    public function getAccessor()
+    public function getPropertyPath()
     {
-        return $this->accessor;
+        return $this->propertyPath;
     }
 
     /**
-     * @param string $accessor
+     * @param string $propertyPath
      */
-    public function setAccessor($accessor)
+    public function setPropertyPath($propertyPath)
     {
-        $this->accessor = $accessor;
+        $this->propertyPath = $propertyPath;
     }
 
     /**

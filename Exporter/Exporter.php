@@ -82,11 +82,6 @@ class Exporter
     protected $entities;
 
     /**
-     * @var string
-     */
-    protected $exportServer;
-
-    /**
      * @var array
      */
     protected $propertyDescriptions = array();
@@ -181,7 +176,6 @@ class Exporter
      * Exporter constructor.
      * @param ObjectManager $om
      * @param array         $entities
-     * @param               $exportServer
      * @param               $exportDir
      * @param               $account
      * @param               $username
@@ -190,12 +184,11 @@ class Exporter
      * @param bool|true     $debugMode
      */
     public function __construct(
-        ObjectManager $om, array $entities, $exportServer, $exportDir, $account, $username,
+        ObjectManager $om, array $entities, $exportDir, $account, $username,
         $password, $propertiesXml = null, $debugMode = true
     ) {
         $this->om = $om;
         $this->entities = $entities;
-        $this->exportServer = $exportServer;
         $this->exportDir = $exportDir;
         $this->account = $account;
         $this->username = $username;
@@ -203,6 +196,7 @@ class Exporter
         $this->propertiesXml = $propertiesXml;
         $this->devIndex = $debugMode;
         $this->accessor = $accessor = PropertyAccess::createPropertyAccessor();
+        $this->createExportDirectory($exportDir);
     }
 
     /**
@@ -357,20 +351,14 @@ class Exporter
      */
     public function getDeltas($entity)
     {
+        $timestamp = null;
         $provider = $this->getDeltaProvider($entity['delta_provider']);
-        $entities = $this->getAllEntities($entity);
 
-        if (!$this->exportLogManager) {
-            return $entities;
+        if ($this->exportLogManager) {
+            $timestamp = $this->exportLogManager->getLastExportDateTime($entity['class']);
         }
-
-        $timestamp = $this->exportLogManager->getLastLogEntryTimestamp($entity['class']);
-        if (!$timestamp) {
-            return $entities;
-        }
-
-        $provider->setDeltaEntities($entities);
-        return $provider->getDeltaEntities($timestamp);
+        return $provider->getDeltaEntities($timestamp, $entity['class'], $entity['delta']['strategy'],
+            $entity['delta']['strategy_options']);
     }
 
     /**
@@ -409,11 +397,11 @@ class Exporter
             /** @var FieldMap|TranslatableFieldMap $field */
             foreach ($entityMap->getFields() as $field) {
                 if ($field->hasJoinFields()) {
-                    $joinEntity = $this->accessor->getValue($entity, $field->getAccessor());
+                    $joinEntity = $this->accessor->getValue($entity, $field->getPropertyPath());
 
                     /** @var FieldMap $joinField */
                     foreach ($field->getJoinFields() as $joinField) {
-                        $row[] = $this->getColumnData($joinEntity, $joinField->getAccessor());
+                        $row[] = $this->getColumnData($joinEntity, $joinField->getPropertyPath());
                     }
                 }
 
@@ -423,7 +411,7 @@ class Exporter
                 }
 
                 if ($field->getColumnName()) {
-                    $row[] = $this->getColumnData($entity, $field->getAccessor());
+                    $row[] = $this->getColumnData($entity, $field->getPropertyPath());
                 }
 
             }
@@ -443,7 +431,7 @@ class Exporter
     protected function getTranslatableValue(TranslatableFieldMap $field, $entity)
     {
         $wrapped = AbstractWrapper::wrap($entity, $field->getAdapter()->getObjectManager());
-        $data = $field->getAdapter()->findTranslation($wrapped, $field->getLocale(), $field->getAccessor(), $field->getTranslatableClass(), $field->getClass());
+        $data = $field->getAdapter()->findTranslation($wrapped, $field->getLocale(), $field->getPropertyPath(), $field->getTranslatableClass(), $field->getClass());
 
         return $data->getContent();
     }
@@ -474,7 +462,7 @@ class Exporter
             $this->addRowToFile($headers, true);
 
             foreach ($results as $entity) {
-                $joinResults = $this->accessor->getValue($entity, $joinTable->getAccessor());
+                $joinResults = $this->accessor->getValue($entity, $joinTable->getPropertyPath());
 
                 foreach ($joinResults as $joinEntity) {
                     $row = array();
@@ -573,12 +561,12 @@ class Exporter
 
     /**
      * @param $entity
-     * @param $column
+     * @param $propertyPath
      * @return mixed
      */
-    public function getColumnData($entity, $column)
+    public function getColumnData($entity, $propertyPath)
     {
-        return $this->accessor->getValue($entity, $column);
+        return $this->accessor->getValue($entity, $propertyPath);
     }
 
     /**
@@ -705,7 +693,7 @@ class Exporter
             'owner'    => $this->owner,
             'xml'      => file_get_contents($this->propertiesXml)
         );
-        //$response = $this->pushFile($this->devIndex ? self::URL_XML_DEV : self::URL_XML, $fields);
+
         $response = $this->pushFile(self::URL_XML, $fields);
 
         return json_decode($response, true);
@@ -769,5 +757,26 @@ class Exporter
         $this->propertiesXml = $propertiesXml;
 
         return $this;
+    }
+
+    /**
+     * @param $exportDir
+     * @return string
+     * @throws \Exception
+     */
+    protected function createExportDirectory($exportDir){
+        if(!file_exists($exportDir) || !is_writable($exportDir)) {
+            if(!file_exists($exportDir)) {
+                @mkdir($exportDir,0755);
+            }
+            if(!is_writable($exportDir)) {
+                @chmod($exportDir,0755);
+            }
+            if(!file_exists($exportDir) || !is_writable($exportDir)) {
+                throw new \Exception("Sorry, Please create ".$exportDir."/ and SET Mode 0755 or any Writable Permission!" , 100);
+            }
+        }
+
+        return $exportDir;
     }
 }

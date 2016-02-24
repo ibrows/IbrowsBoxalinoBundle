@@ -22,7 +22,7 @@ interface ExportLogManagerInterface
 
     /**
      * @param $className
-     * @return string (timestamp)
+     * @return \DateTime
      */
-    public function getLastLogEntryTimestamp($className);
+    public function getLastExportDateTime($className);
 }

@@ -22,17 +22,12 @@ use Thrift\HttpP13n;
  * @package Ibrows\BoxalinoBundle\Client
  * @author Yorkie Chadwick <y.chadwick@networking.ch>
  */
-class HttpP13nService
+class HttpP13nHelper
 {
     /**
      * @var HttpP13n
      */
     protected $client;
-
-    /**
-     * @var
-     */
-    protected $host;
 
     /**
      * @var
@@ -52,7 +47,7 @@ class HttpP13nService
     /**
      * @var
      */
-    protected $cookieDomain;
+    protected $host = 'cdn.bx-cloud.com';
 
     /**
      * @var bool
@@ -86,19 +81,15 @@ class HttpP13nService
 
     /**
      * HttpP13nService constructor.
-     * @param $host
      * @param $account
      * @param $username
      * @param $password
-     * @param $cookieDomain
      */
-    public function __construct($host, $account, $username, $password, $cookieDomain)
+    public function __construct($account, $username, $password)
     {
-        $this->host = $host;
         $this->account = $account;
         $this->username = $username;
         $this->password = $password;
-        $this->cookieDomain = $cookieDomain;
     }
 
     /**
@@ -200,8 +191,12 @@ class HttpP13nService
      */
     public function getChoiceRequest()
     {
+        $choiceRequest = new \com\boxalino\p13n\api\thrift\ChoiceRequest();
 
-        $choiceRequest = $this->getClient()->getChoiceRequest($this->account, $this->cookieDomain);
+        // Setup information about account
+        $userRecord = new \com\boxalino\p13n\api\thrift\UserRecord();
+        $userRecord->username = $this->account;
+        $choiceRequest->userRecord = $userRecord;
 
         return $choiceRequest;
     }

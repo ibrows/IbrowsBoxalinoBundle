@@ -19,10 +19,8 @@ class ExportEntitiesCommand extends ContainerAwareCommand
 {
     const SYNC_FULL = 'full';
     const SYNC_DELTA = 'delta';
-    const SYNC_PARTIAL = 'partial';
-    const SYNC_PROPERTIES = 'properties';
 
-    protected $syncStrategies = array('full', 'delta', 'partial', 'properties');
+    protected $syncStrategies = array('full', 'delta');
 
     /**
      * @var Exporter
@@ -40,8 +38,7 @@ class ExportEntitiesCommand extends ContainerAwareCommand
     {
         $this->setName('ibrows:boxalino:export-entities')
             ->setDescription('Export configured entities to boxalino')
-            ->addOption('sync', null, InputOption::VALUE_REQUIRED, 'Sync strategy, possible values are full, delta, partial, properties', 'full')
-//            ->addOption('entities', null, InputOption::VALUE_OPTIONAL| InputOption::VALUE_IS_ARRAY, 'Array of entities for partial sync only')
+            ->addOption('sync', null, InputOption::VALUE_REQUIRED, 'Sync strategy, possible values are full, delta', 'full')
             ->addOption('push-live', null, InputOption::VALUE_NONE, 'If the Export should be pushed to the Live index, otherwise it is always pushed to dev')
             ->addOption('dry-run', 'd', InputOption::VALUE_NONE, 'Just create CSV with no push')
             ->setHelp(<<<EOT
@@ -86,18 +83,6 @@ EOT
             case self::SYNC_DELTA:
                 $this->exportDelta($output);
                 break;
-//            case self::SYNC_PARTIAL:
-//                try {
-//                    $this->validateEntities($input->getOption('entities'));
-//                } catch (\Exception $e) {
-//                    $output->writeln(sprintf('<error>%s</error>', $e->getMessage()));
-//                    return 1;
-//                }
-//
-//                foreach ($input->getOption('entities') as $name) {
-//                    $response = $this->exportPartial($name);
-//                }
-//                break;
         }
 
         return 0;
@@ -111,8 +96,10 @@ EOT
     {
         $this->exporter->prepareDeltaExport();
 
-        if(!$this->pushZip($output)){
-            return false;
+        if(!$this->dryRun){
+            if(!$this->pushZip($output)){
+                return false;
+            }
         }
 
         $output->writeln('<info>Delta entities successfully exported exported</info>');
@@ -152,36 +139,5 @@ EOT
 
         return true;
     }
-
-    /**
-     * @param $entities
-     * @throws \Exception
-     */
-//    protected function validateEntities($entities){
-//
-//        if(empty($entities)){
-//            throw new \Exception('Please provide which entities you would like to sync by key');
-//        }
-//
-//        $ibrowsBoxalinoEntities = $this->getContainer()->getParameter('ibrows_boxalino.entities');
-//        foreach ($entities as $entity) {
-//            if(!array_key_exists($entity, $ibrowsBoxalinoEntities)){
-//                throw new \Exception(sprintf('The entity %s is not configured to by synced to boxalino', $entity));
-//            }
-//        }
-//    }
-
-    /**
-     * Not yet supported
-     * @Todo: check if we want to keep this
-     * @param $name
-     * @return string
-     */
-//    protected function exportPartial($name)
-//    {
-//        $this->exporter->preparePartialExport($name);
-//
-//        return $this->exporter->pushZip();
-//    }
 
 }

@@ -42,12 +42,15 @@ ibrows_boxalino:
         account: 'test'
         username: 'test'
         password: 'test'
-        cookie_domain: 'test.dev'
     export:
         directory: "%kernel.cache_dir%/"
     entities:
         product:
             class: "Ibrows\\BoxalinoBundle\\Tests\\Entity\\Product"
+            delta:
+              strategy: timestambleFieldQuery
+              strategy_options:
+                 timestampable_query_field: updatedAt
             fields:
                 id: id
                 name: name

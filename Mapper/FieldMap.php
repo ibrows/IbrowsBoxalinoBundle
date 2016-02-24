@@ -26,7 +26,7 @@ class FieldMap
     /**
      * @var string
      */
-    protected $accessor;
+    protected $propertyPath;
 
     /**
      * @var array
@@ -64,18 +64,18 @@ class FieldMap
     /**
      * @return string
      */
-    public function getAccessor()
+    public function getPropertyPath()
     {
-        return $this->accessor;
+        return $this->propertyPath;
     }
 
     /**
-     * @param $accessor
+     * @param $propertyPath
      * @return $this
      */
-    public function setAccessor($accessor)
+    public function setPropertyPath($propertyPath)
     {
-        $this->accessor = $accessor;
+        $this->propertyPath = $propertyPath;
         return $this;
     }
 
