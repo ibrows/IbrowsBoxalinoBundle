@@ -7,6 +7,7 @@ use com\boxalino\p13n\api\thrift\AutocompleteRequest;
 use com\boxalino\p13n\api\thrift\AutocompleteResponse;
 use com\boxalino\p13n\api\thrift\ChoiceInquiry;
 use com\boxalino\p13n\api\thrift\ChoiceRequest;
+use com\boxalino\p13n\api\thrift\ChoiceResponse;
 use com\boxalino\p13n\api\thrift\ContextItem;
 use com\boxalino\p13n\api\thrift\FacetRequest;
 use com\boxalino\p13n\api\thrift\FacetValue;
@@ -464,6 +465,8 @@ class HttpP13nHelper
 
 
     /**
+     * Retrieve the suggestions from the autocomplete response
+     *
      * @param AutocompleteResponse $response
      * @return array
      */
@@ -549,6 +552,8 @@ class HttpP13nHelper
     }
 
     /**
+     * Retrieve recommendations based on an id and/or selected context
+     *
      * @param array $returnFields
      * @param $id
      * @param $role
@@ -625,7 +630,9 @@ class HttpP13nHelper
     }
 
     /**
-     * @param string $language
+     * Set the language to search in either from request or manually
+     *
+     * @param string|RequestStack $language
      */
     public function setLanguage($language)
     {
@@ -633,9 +640,61 @@ class HttpP13nHelper
             $language = $language->getCurrentRequest()->getLocale();
         }
 
-
-
         $this->language = substr($language, 0, 2);
+    }
+
+    /**
+     * Get extra results if results too little from sugestions
+     *
+     * @param ChoiceResponse $response
+     * @return array
+     */
+    public function getRelaxationSuggestions(ChoiceResponse $response)
+    {
+        $suggestions = array();
+        if ($this->relaxationEnabled) {
+            /** @var \com\boxalino\p13n\api\thrift\Variant $variant */
+            foreach ($response->variants as $variant) {
+                if (is_object($variant->searchRelaxation)) {
+                    /** @var \com\boxalino\p13n\api\thrift\SearchResult $searchResult */
+                    foreach ($variant->searchRelaxation->suggestionsResults as $searchResult) {
+                        $suggestions[] = array(
+                            'text' => $searchResult->queryText,
+                            'count' => $searchResult->totalHitCount,
+                            'results' => $this->extractResultsFromHitGroups($searchResult->hitsGroups),
+                        );
+                    }
+                }
+            }
+        }
+        return $suggestions;
+    }
+
+    /**
+     * Get extra results if results too little from sub-phrases
+     *
+     * @param ChoiceResponse $response
+     * @return array
+     */
+    public function getRelaxationSubphraseResults(ChoiceResponse $response)
+    {
+        $subphrases = array();
+        if ($this->relaxationEnabled) {
+            /** @var \com\boxalino\p13n\api\thrift\Variant $variant */
+            foreach ($response->variants as $variant) {
+                if (is_object($variant->searchRelaxation)) {
+                    /** @var \com\boxalino\p13n\api\thrift\SearchResult $searchResult */
+                    foreach ($variant->searchRelaxation->subphrasesResults as $searchResult) {
+                        $subphrases[] = array(
+                            'text' => $searchResult->queryText,
+                            'count' => $searchResult->totalHitCount,
+                            'results' => $this->extractResultsFromHitGroups($searchResult->hitsGroups),
+                        );
+                    }
+                }
+            }
+        }
+        return $subphrases;
     }
 
 }
