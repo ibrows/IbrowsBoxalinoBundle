@@ -699,14 +699,14 @@ class Exporter
         return json_decode($response, true);
     }
 
-    public function publishXml()
+    public function publishXml($publish = '')
     {
         $fields = array(
             'username' => $this->username,
             'password' => $this->password,
             'account'  => $this->account,
             'owner'    => $this->owner,
-            'publish'  => 'true'
+            'publish'  => $publish
         );
         $response = $this->pushFile(self::URL_XML_PUBLISH, $fields);
 

@@ -65,10 +65,13 @@ EOT
         if (!$result) {
             return 1;
         }
+        $publish = 'false';
 
         if ($input->getOption('publish')) {
-            $this->publishProperties($output);
+            $publish = 'true';
         }
+
+        $this->publishProperties($publish, $output);
 
         return 0;
     }
@@ -96,19 +99,51 @@ EOT
     }
 
     /**
+     * @param string $publish
      * @param OutputInterface $output
      * @return bool
      */
-    protected function publishProperties(OutputInterface $output)
+    protected function publishProperties($publish = 'false', OutputInterface $output)
     {
-        $response = $this->exporter->publishXml();
+        $response = $this->exporter->publishXml($publish);
 
         if (array_key_exists('error_type_number', $response)) {
             $output->writeln(sprintf('<error>Exporter exited with the following message: "%s"</error>', $response['message']));
             return false;
         }
-        $output->writeln('<info>Properties XML successfully published</info>');
+        $changesInfo = $this->formatChanges($response['changes']);
+        $info = <<<EOT
+<info>The following changes have been made:</info>
+<comment>$changesInfo</comment>
+
+EOT;
+        $output->writeln($info);
         return true;
+    }
+
+    /**
+     * @param $changes
+     * @return string
+     */
+    protected function formatChanges($changes)
+    {
+        if(!count($changes)){
+            return 'no changes';
+        }
+        $str = '';
+
+        foreach($changes['dbmind_fields'] as $field){
+            $str .= <<<EOT
+
+Field:      $field[0]
+Type:       $field[1]
+Original:   $field[2]
+New:        $field[3]
+
+EOT;
+        }
+
+        return $str;
     }
 
 }
