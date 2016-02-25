@@ -9,10 +9,12 @@ use com\boxalino\p13n\api\thrift\ChoiceInquiry;
 use com\boxalino\p13n\api\thrift\ChoiceRequest;
 use com\boxalino\p13n\api\thrift\ContextItem;
 use com\boxalino\p13n\api\thrift\FacetRequest;
+use com\boxalino\p13n\api\thrift\FacetValue;
 use com\boxalino\p13n\api\thrift\Filter;
 use com\boxalino\p13n\api\thrift\RequestContext;
 use com\boxalino\p13n\api\thrift\SimpleSearchQuery;
 use com\boxalino\p13n\api\thrift\SortField;
+use com\boxalino\p13n\api\thrift\UserRecord;
 use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Thrift\HttpP13n;
@@ -90,6 +92,7 @@ class HttpP13nHelper
         $this->account = $account;
         $this->username = $username;
         $this->password = $password;
+        $this->getClient();
     }
 
     /**
@@ -179,10 +182,10 @@ class HttpP13nHelper
      */
     public function getChoiceRequest()
     {
-        $choiceRequest = new \com\boxalino\p13n\api\thrift\ChoiceRequest();
+        $choiceRequest = new ChoiceRequest();
 
         // Setup information about account
-        $userRecord = new \com\boxalino\p13n\api\thrift\UserRecord();
+        $userRecord = new UserRecord();
         $userRecord->username = $this->account;
         $choiceRequest->userRecord = $userRecord;
 
@@ -264,16 +267,14 @@ class HttpP13nHelper
                 $facetOptions = array(
                     'numerical' => true,
                     'range' => true,
-                    'selectedValues' => array(new \com\boxalino\p13n\api\thrift\FacetValue(
+                    'selectedValues' => array(new FacetValue(
                         array('rangeFromInclusive' => $facet['values']['start'],
                             'rangeToExclusive' => $facet['values']['end'])
                     ))
                 );
             } else {
                 foreach ($facet['values'] as $value) {
-                    $selectedValues[] = new \com\boxalino\p13n\api\thrift\FacetValue([
-                        'stringValue' => $value
-                    ]);
+                    $selectedValues[] = new FacetValue(array('stringValue' => $value));
                 }
                 $facetOptions['selectedValues'] = $selectedValues;
             }
