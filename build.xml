@@ -73,7 +73,7 @@
             <env key="SYMFONY__JENKINS__GIT_BRANCH" value="${BUILD_ENV.GIT_BRANCH}"/>
             <env key="SYMFONY__JENKINS__GIT_COMMIT" value="${BUILD_ENV.GIT_COMMIT}"/>
             <env key="SYMFONY__JENKINS__CLEAN_BRANCH_NAME" value="${clean_name}"/>
-            <arg line="install --prefer-source"/>
+            <arg line="install --dev --prefer-source"/>
         </exec>
         <property name="prepare.done" value="true"/>
     </target>
