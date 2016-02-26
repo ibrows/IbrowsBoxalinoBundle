@@ -86,7 +86,8 @@
 
             <fileset dir="${basedir}">
                 <include name="**/*.php"/>
-                <exclude name="vendor/*"/>
+                <exclude name="vendor"/>
+                <exclude name="Tests/Application/cache"/>
                 <modified/>
             </fileset>
         </apply>
