@@ -5,7 +5,7 @@
             <pathelement location="/usr/share/java/ant-contrib.jar"/>
         </classpath>
     </taskdef>
-    
+
     <!-- Jenkins tooling locations. Adapt for localhost -->
     <property name="php" value="/usr/local/php/bin/php"/>
     <property name="phploc" value="/usr/local/php/bin/phploc"/>
@@ -13,7 +13,7 @@
     <property name="phpmd" value="/usr/local/php/bin/phpmd"/>
     <property name="phpcs" value="/usr/local/php/bin/phpcs"/>
     <property name="phpcpd" value="/usr/local/php/bin/phpcpd"/>
-    <property name="phpunit" value="/usr/local/php/bin/phpunit"/>
+    <property name="phpunit" value="vendor/bin/phpunit"/>
     <property name="composer" value="/usr/local/php/bin/composer"/>
     <property environment="BUILD_ENV"/>
 
@@ -22,7 +22,7 @@
                    defaultValue="develop"
                    input="${BUILD_ENV.JOB_NAME}"
                    regexp="^([^_]+)_([^_]+)_([^_]+)$"
-                   select="\2" />
+                   select="\2"/>
 
     <target name="test"
             depends="prepare,phpunit,phpcs-ci"
@@ -65,14 +65,14 @@
         <mkdir dir="${basedir}/build/pdepend"/>
         <mkdir dir="${basedir}/build/phpdox"/>
         <exec executable="${composer}" failonerror="false">
-            <env key="SYMFONY__JENKINS__BUILD_NUMBER" value="${BUILD_ENV.BUILD_NUMBER}" />
-            <env key="SYMFONY__JENKINS__BUILD_ID" value="${BUILD_ENV.BUILD_ID}" />
-            <env key="SYMFONY__JENKINS__JOB_NAME" value="${BUILD_ENV.JOB_NAME}" />
-            <env key="SYMFONY__JENKINS__BUILD_NUMBER" value="${BUILD_ENV.BUILD_NUMBER}" />
-            <env key="SYMFONY__JENKINS__NODE_NAME" value="${BUILD_ENV.NODE_NAME}" />
-            <env key="SYMFONY__JENKINS__GIT_BRANCH" value="${BUILD_ENV.GIT_BRANCH}" />
-            <env key="SYMFONY__JENKINS__GIT_COMMIT" value="${BUILD_ENV.GIT_COMMIT}" />
-            <env key="SYMFONY__JENKINS__CLEAN_BRANCH_NAME" value="${clean_name}" />
+            <env key="SYMFONY__JENKINS__BUILD_NUMBER" value="${BUILD_ENV.BUILD_NUMBER}"/>
+            <env key="SYMFONY__JENKINS__BUILD_ID" value="${BUILD_ENV.BUILD_ID}"/>
+            <env key="SYMFONY__JENKINS__JOB_NAME" value="${BUILD_ENV.JOB_NAME}"/>
+            <env key="SYMFONY__JENKINS__BUILD_NUMBER" value="${BUILD_ENV.BUILD_NUMBER}"/>
+            <env key="SYMFONY__JENKINS__NODE_NAME" value="${BUILD_ENV.NODE_NAME}"/>
+            <env key="SYMFONY__JENKINS__GIT_BRANCH" value="${BUILD_ENV.GIT_BRANCH}"/>
+            <env key="SYMFONY__JENKINS__GIT_COMMIT" value="${BUILD_ENV.GIT_COMMIT}"/>
+            <env key="SYMFONY__JENKINS__CLEAN_BRANCH_NAME" value="${clean_name}"/>
             <arg line="install --prefer-source"/>
         </exec>
         <property name="prepare.done" value="true"/>
@@ -82,11 +82,12 @@
             unless="lint.done"
             description="Perform syntax check of sourcecode files">
         <apply executable="php" failonerror="true" taskname="lint">
-            <arg value="-l" />
+            <arg value="-l"/>
 
-            <fileset dir="${basedir}/src">
-                <include name="**/*.php" />
-                <modified />
+            <fileset dir="${basedir}">
+                <include name="**/*.php"/>
+                <exclude name="vendor/*"></exclude>
+                <modified/>
             </fileset>
         </apply>
 
@@ -97,8 +98,9 @@
             unless="phploc.done"
             description="Measure project size using PHPLOC and print human readable output. Intended for usage on the command line.">
         <exec executable="${phploc}" taskname="phploc">
-            <arg value="--count-tests" />
-            <arg path="${basedir}/src" />
+            <arg value="--count-tests"/>
+            <arg value="--exclude vendor"/>
+            <arg path="${basedir}"/>
         </exec>
 
         <property name="phploc.done" value="true"/>
@@ -109,12 +111,13 @@
             depends="prepare"
             description="Measure project size using PHPLOC and log result in CSV and XML format. Intended for usage within a continuous integration environment.">
         <exec executable="${phploc}" taskname="phploc">
-            <arg value="--count-tests" />
-            <arg value="--log-csv" />
-            <arg path="${basedir}/build/logs/phploc.csv" />
-            <arg value="--log-xml" />
-            <arg path="${basedir}/build/logs/phploc.xml" />
-            <arg path="${basedir}/src" />
+            <arg value="--count-tests"/>
+            <arg value="--log-csv"/>
+            <arg value="--exclude vendor"/>
+            <arg path="${basedir}/build/logs/phploc.csv"/>
+            <arg value="--log-xml"/>
+            <arg path="${basedir}/build/logs/phploc.xml"/>
+            <arg path="${basedir}"/>
         </exec>
 
         <property name="phploc.done" value="true"/>
@@ -125,10 +128,11 @@
             depends="prepare"
             description="Calculate software metrics using PHP_Depend and log result in XML format. Intended for usage within a continuous integration environment.">
         <exec executable="${pdepend}" taskname="pdepend">
-            <arg value="--jdepend-xml=${basedir}/build/logs/jdepend.xml" />
-            <arg value="--jdepend-chart=${basedir}/build/pdepend/dependencies.svg" />
-            <arg value="--overview-pyramid=${basedir}/build/pdepend/overview-pyramid.svg" />
-            <arg path="${basedir}/src" />
+            <arg value="--jdepend-xml=${basedir}/build/logs/jdepend.xml"/>
+            <arg value="--jdepend-chart=${basedir}/build/pdepend/dependencies.svg"/>
+            <arg value="--overview-pyramid=${basedir}/build/pdepend/overview-pyramid.svg"/>
+            <arg path="${basedir}"/>
+            <arg value="--exclude vendor"/>
         </exec>
 
         <property name="pdepend.done" value="true"/>
@@ -138,9 +142,10 @@
             unless="phpmd.done"
             description="Perform project mess detection using PHPMD and print human readable output. Intended for usage on the command line before committing.">
         <exec executable="${phpmd}" taskname="phpmd">
-            <arg path="${basedir}/src" />
-            <arg value="text" />
-            <arg path="${basedir}/app/phpmd.xml" />
+            <arg path="${basedir}"/>
+            <arg value="--exclude vendor"/>
+            <arg value="text"/>
+            <arg path="${basedir}/app/phpmd.xml"/>
         </exec>
 
         <property name="phpmd.done" value="true"/>
@@ -151,11 +156,12 @@
             depends="prepare"
             description="Perform project mess detection using PHPMD and log result in XML format. Intended for usage within a continuous integration environment.">
         <exec executable="${phpmd}" taskname="phpmd">
-            <arg path="${basedir}/src" />
-            <arg value="xml" />
-            <arg path="${basedir}/app/phpmd.xml" />
-            <arg value="--reportfile" />
-            <arg path="${basedir}/build/logs/pmd.xml" />
+            <arg path="${basedir}"/>
+            <arg value="--exclude vendor"/>
+            <arg value="xml"/>
+            <arg path="${basedir}/app/phpmd.xml"/>
+            <arg value="--reportfile"/>
+            <arg path="${basedir}/build/logs/pmd.xml"/>
         </exec>
 
         <property name="phpmd.done" value="true"/>
@@ -164,11 +170,12 @@
     <target name="phpcs-ci"
             description="Find coding standard violations using PHP_CodeSniffer">
         <exec executable="${phpcs}" output="/dev/null">
-            <arg value="--report=checkstyle" />
-            <arg value="--report-file=${basedir}/build/logs/checkstyle.xml" />
-            <arg value="--standard=PSR2" />
-            <arg value="--extensions=php" />
-            <arg path="${basedir}/src" />
+            <arg value="--report=checkstyle"/>
+            <arg value="--report-file=${basedir}/build/logs/checkstyle.xml"/>
+            <arg value="--standard=PSR2"/>
+            <arg value="--extensions=php"/>
+            <arg path="${basedir}"/>
+            <arg value="--exclude vendor"/>
         </exec>
     </target>
 
@@ -176,7 +183,8 @@
             unless="phpcpd.done"
             description="Find duplicate code using PHPCPD and print human readable output. Intended for usage on the command line before committing.">
         <exec executable="${phpcpd}" taskname="phpcpd">
-            <arg path="${basedir}/src" />
+            <arg path="${basedir}"/>
+            <arg value="--exclude vendor"/>
         </exec>
 
         <property name="phpcpd.done" value="true"/>
@@ -187,9 +195,10 @@
             depends="prepare"
             description="Find duplicate code using PHPCPD and log result in XML format. Intended for usage within a continuous integration environment.">
         <exec executable="${phpcpd}" taskname="phpcpd">
-            <arg value="--log-pmd" />
-            <arg path="${basedir}/build/logs/pmd-cpd.xml" />
-            <arg path="${basedir}/src" />
+            <arg value="--log-pmd"/>
+            <arg path="${basedir}/build/logs/pmd-cpd.xml"/>
+            <arg path="${basedir}"/>
+            <arg value="--exclude vendor"/>
         </exec>
 
         <property name="phpcpd.done" value="true"/>
@@ -200,14 +209,14 @@
             depends="prepare"
             description="Run unit tests with PHPUnit">
         <exec executable="${phpunit}" failonerror="true" taskname="phpunit">
-            <env key="SYMFONY__JENKINS__BUILD_NUMBER" value="${BUILD_ENV.BUILD_NUMBER}" />
-            <env key="SYMFONY__JENKINS__BUILD_ID" value="${BUILD_ENV.BUILD_ID}" />
-            <env key="SYMFONY__JENKINS__JOB_NAME" value="${BUILD_ENV.JOB_NAME}" />
-            <env key="SYMFONY__JENKINS__BUILD_NUMBER" value="${BUILD_ENV.BUILD_NUMBER}" />
-            <env key="SYMFONY__JENKINS__NODE_NAME" value="${BUILD_ENV.NODE_NAME}" />
-            <env key="SYMFONY__JENKINS__GIT_BRANCH" value="${BUILD_ENV.GIT_BRANCH}" />
-            <env key="SYMFONY__JENKINS__GIT_COMMIT" value="${BUILD_ENV.GIT_COMMIT}" />
-            <env key="SYMFONY__JENKINS__CLEAN_BRANCH_NAME" value="${clean_name}" />
+            <env key="SYMFONY__JENKINS__BUILD_NUMBER" value="${BUILD_ENV.BUILD_NUMBER}"/>
+            <env key="SYMFONY__JENKINS__BUILD_ID" value="${BUILD_ENV.BUILD_ID}"/>
+            <env key="SYMFONY__JENKINS__JOB_NAME" value="${BUILD_ENV.JOB_NAME}"/>
+            <env key="SYMFONY__JENKINS__BUILD_NUMBER" value="${BUILD_ENV.BUILD_NUMBER}"/>
+            <env key="SYMFONY__JENKINS__NODE_NAME" value="${BUILD_ENV.NODE_NAME}"/>
+            <env key="SYMFONY__JENKINS__GIT_BRANCH" value="${BUILD_ENV.GIT_BRANCH}"/>
+            <env key="SYMFONY__JENKINS__GIT_COMMIT" value="${BUILD_ENV.GIT_COMMIT}"/>
+            <env key="SYMFONY__JENKINS__CLEAN_BRANCH_NAME" value="${clean_name}"/>
             <arg line="--log-junit build/logs/junit.xml --coverage-clover build/logs/clover.xml --coverage-html build/coverage"/>
         </exec>
 
