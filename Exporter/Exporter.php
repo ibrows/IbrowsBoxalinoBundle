@@ -471,13 +471,13 @@ class Exporter
                     foreach ($entityMap->getFields() as $field) {
                         if ($field->hasJoinFields()) {
                             foreach ($field->getJoinFields() as $joinField) {
-                                $row[] = $this->getColumnData($entity, $joinField->getAccessor());
+                                $row[] = $this->getColumnData($entity, $joinField->getPropertyPath());
                             }
                         }
 
                         if ($field->hasInverseJoinFields()) {
                             foreach ($field->getInverseJoinFields() as $joinField) {
-                                $row[] = $this->getColumnData($joinEntity, $joinField->getAccessor());
+                                $row[] = $this->getColumnData($joinEntity, $joinField->getPropertyPath());
                             }
                         }
                     }

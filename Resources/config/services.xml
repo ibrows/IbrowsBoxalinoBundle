@@ -6,12 +6,10 @@
 
     <services>
         <service class="Ibrows\BoxalinoBundle\Helper\HttpP13nHelper" id="ibrows_boxalino.client.http_p13n_helper">
+            <argument type="service" id="request_stack" />
             <argument>%ibrows_boxalino.access.account%</argument>
             <argument>%ibrows_boxalino.access.username%</argument>
             <argument>%ibrows_boxalino.access.password%</argument>
-            <call method="setLanguage">
-                <argument type="service" id="request_stack" />
-            </call>
         </service>
 
         <service class="Ibrows\BoxalinoBundle\Exporter\Exporter" id="ibrows_boxalino.exporter.exporter">

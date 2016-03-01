@@ -35,8 +35,8 @@ class ResponseEventListener
      */
     public function onKernelResponse(FilterResponseEvent $event)
     {
-        $cems = $this->httpP13nService->createCemsCookie($event->getRequest()->cookies->get('cems', null));
-        $cemv = $this->httpP13nService->createCemvCookie($event->getRequest()->cookies->get('cemv', null));
+        $cems = $this->httpP13nService->getCemsCookie($event->getRequest());
+        $cemv = $this->httpP13nService->getCemvCookie($event->getRequest());
 
         $event->getResponse()->headers->setCookie($cems);
         $event->getResponse()->headers->setCookie($cemv);
