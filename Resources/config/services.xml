@@ -13,12 +13,9 @@
         </service>
 
         <service class="Ibrows\BoxalinoBundle\Exporter\Exporter" id="ibrows_boxalino.exporter.exporter">
-            <argument id="doctrine.orm.entity_manager" type="service"/>
+            <argument id="ibrows_boxalino.client.http_p13n_helper" type="service"/>
             <argument>%ibrows_boxalino.entities%</argument>
             <argument>%ibrows_boxalino.export.directory%</argument>
-            <argument>%ibrows_boxalino.access.account%</argument>
-            <argument>%ibrows_boxalino.access.username%</argument>
-            <argument>%ibrows_boxalino.access.password%</argument>
             <argument>%ibrows_boxalino.export.properties_xml%</argument>
             <argument>%ibrows_boxalino.debug_mode%</argument>
         </service>

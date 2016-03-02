@@ -1,9 +1,8 @@
 <?php
 namespace Ibrows\BoxalinoBundle\Exporter;
 
-use Doctrine\Common\Persistence\ObjectManager;
-use Doctrine\ORM\EntityManager;
-use Gedmo\Tool\Wrapper\AbstractWrapper;
+use com\boxalino\bxclient\v1\BxData;
+use Ibrows\BoxalinoBundle\Helper\HttpP13nHelper;
 use Ibrows\BoxalinoBundle\Mapper\EntityMap;
 use Ibrows\BoxalinoBundle\Mapper\EntityMapperInterface;
 use Ibrows\BoxalinoBundle\Mapper\FieldMap;
@@ -25,27 +24,32 @@ use Symfony\Component\PropertyAccess\PropertyAccess;
  */
 class Exporter
 {
+    /**
+     *
+     */
+    const URL_XML = '/frontend/dbmind/en/dbmind/api/data/source/update';
+    /**
+     *
+     */
+    const URL_XML_DEV = '/frontend/dbmind/en/dbmind/api/data/source/update?dev=true';
+    /**
+     *
+     */
+    const URL_XML_PUBLISH = '/frontend/dbmind/en/dbmind/api/configuration/publish/owner';
+    /**
+     *
+     */
+    const URL_ZIP = '/frontend/dbmind/en/dbmind/api/data/push';
+    /**
+     *
+     */
+    const URL_ZIP_DEV = '/frontend/dbmind/en/dbmind/api/data/push?dev=true';
 
     /**
      *
      */
-    const URL_XML = 'http://di1.bx-cloud.com/frontend/dbmind/en/dbmind/api/data/source/update';
-    /**
-     *
-     */
-    const URL_XML_DEV = 'http://di1.bx-cloud.com/frontend/dbmind/en/dbmind/api/data/source/update?dev=true';
-    /**
-     *
-     */
-    const URL_XML_PUBLISH = 'http://di1.bx-cloud.com/frontend/dbmind/en/dbmind/api/configuration/publish/owner';
-    /**
-     *
-     */
-    const URL_ZIP = 'http://di1.bx-cloud.com/frontend/dbmind/en/dbmind/api/data/push';
-    /**
-     *
-     */
-    const URL_ZIP_DEV = 'http://di1.bx-cloud.com/frontend/dbmind/en/dbmind/api/data/push?dev=true';
+    const URL_EXECUTE_TASK = '/frontend/dbmind/en/dbmind/files/task/execute';
+
     /**
      *
      */
@@ -72,9 +76,9 @@ class Exporter
     const XML_FORMAT = 'CSV';
 
     /**
-     * @var EntityManager
+     * @var string
      */
-    protected $om;
+    protected $host = 'http://di1.bx-cloud.com';
 
     /**
      * @var array
@@ -171,30 +175,33 @@ class Exporter
      */
     protected $exportLogManager;
 
+    /**
+     * @var
+     */
+    protected $bxData;
+
 
     /**
      * Exporter constructor.
-     * @param ObjectManager $om
+     * @param HttpP13nHelper $httpP13nHelper
      * @param array         $entities
      * @param               $exportDir
-     * @param               $account
-     * @param               $username
-     * @param               $password
      * @param null          $propertiesXml
      * @param bool|true     $debugMode
      */
     public function __construct(
-        ObjectManager $om, array $entities, $exportDir, $account, $username,
-        $password, $propertiesXml = null, $debugMode = true
+        HttpP13nHelper $httpP13nHelper, array $entities, $exportDir, $propertiesXml = null, $debugMode = false
     ) {
-        $this->om = $om;
         $this->entities = $entities;
         $this->exportDir = $exportDir;
-        $this->account = $account;
-        $this->username = $username;
-        $this->password = $password;
         $this->propertiesXml = $propertiesXml;
         $this->devIndex = $debugMode;
+
+        $this->account = $httpP13nHelper->getClient()->getAccount();
+        $this->password = $httpP13nHelper->getClient()->getPassword();
+        $this->username = $httpP13nHelper->getClient()->getUsername();
+        $this->bxData = new BxData($httpP13nHelper->getClient());
+
         $this->accessor = $accessor = PropertyAccess::createPropertyAccessor();
         $this->createExportDirectory($exportDir);
     }
@@ -248,6 +255,9 @@ class Exporter
         $this->prepareExport();
     }
 
+    /**
+     *
+     */
     public function prepareExport()
     {
         $this->csvFiles = array();
@@ -255,19 +265,6 @@ class Exporter
         $this->createZipFile();
     }
 
-    /**
-     * @Todo: check if we will keep this as it is not standard
-     * @param $name
-     */
-//    public function preparePartialExport($name)
-//    {
-//        $this->csvFiles = array();
-//        $this->exportType = 'partial_';
-//        if (array_key_exists($name, $this->entities)) {
-//            $this->createCSVFiles(array($this->entities[$name]));
-//            $this->createZipFile();
-//        }
-//    }
 
     /**
      * @param array $entities
@@ -430,7 +427,7 @@ class Exporter
      */
     protected function getTranslatableValue(TranslatableFieldMap $field, $entity)
     {
-        $wrapped = AbstractWrapper::wrap($entity, $field->getAdapter()->getObjectManager());
+        $wrapped = Gedmo\Tool\Wrapper\AbstractWrapper::wrap($entity, $field->getAdapter()->getObjectManager());
         $data = $field->getAdapter()->findTranslation($wrapped, $field->getLocale(), $field->getPropertyPath(), $field->getTranslatableClass(), $field->getClass());
 
         return $data->getContent();
@@ -617,7 +614,10 @@ class Exporter
             'delta'    => $this->delta ? 'true' : 'false',
             'data'     => $this->getCurlFile($this->getZipFile(), 'application/zip'),
         );
-        $response = $this->pushFile($this->devIndex ? self::URL_ZIP_DEV : self::URL_ZIP, $fields);
+
+
+        $url = $this->host . ($this->devIndex ? self::URL_ZIP_DEV : self::URL_ZIP);
+        $response = $this->pushFile($url, $fields);
 
         return json_decode($response, true);
     }
@@ -694,11 +694,30 @@ class Exporter
             'xml'      => file_get_contents($this->propertiesXml)
         );
 
-        $response = $this->pushFile(self::URL_XML, $fields);
+        $url = $this->host . self::URL_XML;
+        $response = $this->pushFile($url, $fields);
 
         return json_decode($response, true);
     }
 
+    /**
+     * @return mixed
+     */
+    public function checkXmlChanges() {
+        return $this->publishXml(false);
+    }
+
+    /**
+     * @return mixed
+     */
+    public function publishXmlChanges() {
+        return $this->publishXml(true);
+    }
+
+    /**
+     * @param string $publish
+     * @return mixed
+     */
     public function publishXml($publish = '')
     {
         $fields = array(
@@ -706,9 +725,10 @@ class Exporter
             'password' => $this->password,
             'account'  => $this->account,
             'owner'    => $this->owner,
-            'publish'  => $publish
+            'publish'  => ($publish ? 'true' : 'false')
         );
-        $response = $this->pushFile(self::URL_XML_PUBLISH, $fields);
+        $url = $this->host . self::URL_XML_PUBLISH;
+        $response = $this->pushFile($url, $fields);
 
         return json_decode($response, true);
     }
@@ -778,5 +798,48 @@ class Exporter
         }
 
         return $exportDir;
+    }
+
+
+    /**
+     * @param $taskName
+     * @return string
+     */
+    public function getTaskExecuteUrl($taskName) {
+        return $this->host . self::URL_EXECUTE_TASK . '?iframeAccount=' . $this->account . '&task_process=' . $taskName;
+    }
+
+    /**
+     * @param bool|false $isTest
+     * @param string $taskName
+     */
+    public function publishChoices($isTest = false, $taskName="generate_optimization") {
+
+        if($this->devIndex) {
+            $taskName .= '_dev';
+        }
+        if($isTest) {
+            $taskName .= '_test';
+        }
+
+        $url = $this->getTaskExecuteUrl($taskName);
+        file_get_contents($url);
+    }
+
+    /**
+     * @param string $taskName
+     */
+    public function prepareCorpusIndex($taskName="corpus") {
+        $url = $this->getTaskExecuteUrl($taskName);
+        file_get_contents($url);
+    }
+
+    /**
+     * @param $fields
+     * @param string $taskName
+     */
+    public function prepareAutocompleteIndex($fields, $taskName="autocomplete") {
+        $url = $this->getTaskExecuteUrl($taskName);
+        file_get_contents($url);
     }
 }
