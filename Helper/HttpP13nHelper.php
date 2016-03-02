@@ -2,26 +2,15 @@
 namespace Ibrows\BoxalinoBundle\Helper;
 
 use com\boxalino\bxclient\v1\BxAutocompleteRequest;
+use com\boxalino\bxclient\v1\BxAutocompleteResponse;
+use com\boxalino\bxclient\v1\BxChooseResponse;
 use com\boxalino\bxclient\v1\BxFacets;
 use com\boxalino\bxclient\v1\BxFilter;
 use com\boxalino\bxclient\v1\BxRecommendationRequest;
 use com\boxalino\bxclient\v1\BxRequest;
 use com\boxalino\bxclient\v1\BxSearchRequest;
 use com\boxalino\p13n\api\thrift\AutocompleteHit;
-use com\boxalino\p13n\api\thrift\AutocompleteQuery;
-use com\boxalino\p13n\api\thrift\AutocompleteRequest;
 use com\boxalino\p13n\api\thrift\AutocompleteResponse;
-use com\boxalino\p13n\api\thrift\ChoiceInquiry;
-use com\boxalino\p13n\api\thrift\ChoiceRequest;
-use com\boxalino\p13n\api\thrift\ChoiceResponse;
-use com\boxalino\p13n\api\thrift\ContextItem;
-use com\boxalino\p13n\api\thrift\FacetRequest;
-use com\boxalino\p13n\api\thrift\FacetValue;
-use com\boxalino\p13n\api\thrift\Filter;
-use com\boxalino\p13n\api\thrift\RequestContext;
-use com\boxalino\p13n\api\thrift\SimpleSearchQuery;
-use com\boxalino\p13n\api\thrift\SortField;
-use com\boxalino\p13n\api\thrift\UserRecord;
 use Ibrows\BoxalinoBundle\Lib\BoxalinoClient;
 use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\HttpFoundation\Request;
@@ -40,22 +29,22 @@ class HttpP13nHelper
     protected $client;
 
     /**
-     * @var
+     * @var string
      */
     protected $account;
 
     /**
-     * @var
+     * @var string
      */
     protected $username;
 
     /**
-     * @var
+     * @var string
      */
     protected $password;
 
     /**
-     * @var
+     * @var string
      */
     protected $host = 'cdn.bx-cloud.com';
 
@@ -67,20 +56,10 @@ class HttpP13nHelper
     /**
      * @var string
      */
-    protected $highlightPreTag = '<em>';
-
-    /**
-     * @var string
-     */
-    protected $highlightPostTag = '</em>';
-
-    /**
-     * @var
-     */
     protected $searchWidgetId = 'search';
 
     /**
-     * @var
+     * @var string
      */
     protected $autocompleteWidgetId = 'autocomplete';
 
@@ -88,6 +67,11 @@ class HttpP13nHelper
      * @var string
      */
     protected $language = 'en';
+
+    /**
+     * @var string
+     */
+    protected $domain;
 
     /**
      * @var Request
@@ -136,8 +120,10 @@ class HttpP13nHelper
     {
         $this->request = $requestStack->getCurrentRequest();
 
-        $this->setLanguage($this->request->getLocale());
-
+        if ($this->request) {
+            $this->setLanguage($this->request->getLocale());
+            $this->domain = $this->request->getHost();
+        }
     }
 
     /**
@@ -154,6 +140,18 @@ class HttpP13nHelper
     public function search(array $returnFields, $queryText = null, $offset = 0, $hitCount = 12,
                            $filters = array(), $facets = array(), $sortFields = array(), $orFilters = false)
     {
+        $bxRequest = $this->createSearchRequest($returnFields, $queryText, $offset, $hitCount, $filters, $facets,
+            $sortFields, $orFilters);
+
+        $this->addRequest($bxRequest);
+
+        // Call the service
+        return $this->getResponse();
+    }
+
+    public function createSearchRequest(array $returnFields, $queryText = null, $offset = 0, $hitCount = 12,
+                                        $filters = array(), $facets = array(), $sortFields = array(), $orFilters = false)
+    {
         $bxRequest = new BxSearchRequest($this->language, $queryText, $hitCount);
         $bxRequest->setIndexId($this->account);
         $bxRequest->setReturnFields($returnFields);
@@ -169,10 +167,147 @@ class HttpP13nHelper
             $bxRequest->addSortField($sortField['fieldName'], $reverse);
         }
 
-        $this->getClient()->addRequest($bxRequest);
+        return $bxRequest;
+    }
 
-        // Call the service
+    /**
+     * @param BxSearchRequest $bxRequest
+     */
+    public function addRequest(BxSearchRequest $bxRequest)
+    {
+        $this->getClient()->addRequest($bxRequest);
+    }
+
+    /**
+     * @param array $returnFields
+     * @param $queryText
+     * @param int $hitCount
+     * @param int $suggestionCount
+     * @param array $filters
+     * @return null
+     */
+    public function autocomplete(array $returnFields, $queryText, $hitCount = 5, $suggestionCount = 5, $filters = array())
+    {
+        $bxRequest = $this->createAutocompleteRequest($returnFields, $queryText, $hitCount, $suggestionCount, $filters);
+
+        //make the query to Boxalino server and get back the response for all requests
+        return $this->getAutocompleteResponses(array($bxRequest));
+    }
+
+    /**
+     * @param array $returnFields
+     * @param $queryText
+     * @param int $hitCount
+     * @param int $suggestionCount
+     * @return BxAutocompleteRequest
+     */
+    public function createAutocompleteRequest(array $returnFields, $queryText, $hitCount = 5, $suggestionCount = 5, $filters = array())
+    {
+        $bxRequest = new BxAutocompleteRequest($this->language, $queryText, $hitCount, $suggestionCount,
+            $this->autocompleteWidgetId, $this->searchWidgetId);
+
+        //set the fields to be returned for each item in the response
+        $bxRequest->getBxSearchRequest()->setReturnFields($returnFields);
+
+
+        foreach ($filters as $filter) {
+            $this->addFilter($bxRequest->getBxSearchRequest(), $filter);
+        }
+
+        return $bxRequest;
+    }
+
+    /**
+     * @param array $requests
+     * @return AutocompleteResponse
+     */
+    public function getAutocompleteResponses(array $requests)
+    {
+        $this->getClient()->setAutocompleteRequests($requests);
+
+        return $this->getClient()->getAutocompleteResponses();
+    }
+
+    /**
+     * @param BxAutocompleteResponse $response
+     * @return array
+     */
+    public function getAutocompleteSuggestions(BxAutocompleteResponse $response)
+    {
+        $suggestions = array();
+        /** @var AutocompleteHit $hit */
+        foreach ($response->getResponse()->hits as $hit) {
+            $suggestions[] = array(
+                'text' => $hit->suggestion,
+                'html' => (strlen($hit->highlighted) ? $hit->highlighted : $hit->suggestion),
+                'searchResults' => $hit->searchResult->hits,
+                'hits' => $hit->searchResult->totalHitCount,
+            );
+        }
+        return $suggestions;
+    }
+
+    /**
+     * Retrieve recommendations based on an id and/or selected context
+     *
+     * @param array $returnFields
+     * @param $id
+     * @param int $offset
+     * @param int $hitCount
+     * @param string $fieldName
+     * @param array $contexts
+     * @return \com\boxalino\bxclient\v1\BxChooseResponse
+     */
+    public function findRawRecommendations(array $returnFields, $id, $offset = 0, $hitCount = 5,
+                                           $fieldName = 'id', $contexts = array('search'))
+    {
+        foreach ($contexts as $context) {
+            $bxRequestSimilar = new BxRecommendationRequest($this->language, $context, $hitCount);
+            $bxRequestSimilar->setOffset($offset);
+            $bxRequestSimilar->setReturnFields($returnFields);
+            //indicate the product the user is looking at now (reference of what the recommendations need to be similar to)
+            $bxRequestSimilar->setProductContext($fieldName, $id);
+            //add the request
+            $this->getClient()->addRequest($bxRequestSimilar);
+        }
+
         return $this->getResponse();
+    }
+
+    /**
+     * Get extra results if results too little from sugestions
+     *
+     * @param BxChooseResponse $chooseResponse
+     * @param null $choiceId
+     * @return array
+     */
+    public function getRelaxationSuggestionResults(BxChooseResponse $chooseResponse, $choiceId = null)
+    {
+        $suggestions = array();
+        if ($this->relaxationEnabled) {
+            $variant = $chooseResponse->getChoiceResponseVariant($choiceId);
+            if ($variant->searchRelaxation) {
+                $suggestions = $variant->searchRelaxation->suggestionsResults;
+            }
+        }
+        return $suggestions;
+    }
+
+    /**
+     * Get extra results if results too little from sub-phrases
+     *
+     * @param BxChooseResponse $chooseResponse
+     * @param null $choiceId
+     * @return array
+     */
+    public function getRelaxationSubphraseResults(BxChooseResponse $chooseResponse, $choiceId = null)
+    {
+        $subphrases = array();
+        if ($this->relaxationEnabled) {
+            $variant = $chooseResponse->getChoiceResponseVariant($choiceId);
+            $subphrases = $variant->searchRelaxation->subphrasesResults;
+        }
+        return $subphrases;
     }
 
     /**
@@ -210,16 +345,111 @@ class HttpP13nHelper
     }
 
     /**
+     * @param BxChooseResponse $chooseResponse
+     * @param $fieldName
+     * @param null $choiceId
+     * @return array
+     */
+    public function extractFacet(BxChooseResponse $chooseResponse, $fieldName, $choiceId = null)
+    {
+        $facets = $chooseResponse->getFacets($choiceId, $this->relaxationEnabled);
+
+        return $this->getFacetValues($facets, $fieldName);
+
+    }
+
+    /**
+     * @param BxFacets $facets
+     * @param $fieldName
+     * @return array
+     */
+    protected function getFacetValues(BxFacets $facets, $fieldName)
+    {
+        $facetArray = array();
+        //loop on the search response hit ids and print them
+        foreach ($facets->getFacetValues($fieldName) as $fieldValue) {
+            $facetArray[] = array(
+                'parameterValue' => $facets->getFacetValueParameterValue($fieldName, $fieldValue),
+                'stringValue' => $facets->getFacetValueLabel($fieldName, $fieldValue),
+                'selected' => $facets->isFacetValueSelected($fieldName, $fieldValue),
+                'hitCount' => $facets->getFacetValueCount($fieldName, $fieldValue),
+            );
+        }
+
+        return $facetArray;
+    }
+
+    /**
+     * @param BxChooseResponse $chooseResponse
+     * @param $fieldName
+     * @param null $choiceId
+     * @return array
+     */
+    public function extractSuggestionFacet(BxChooseResponse $chooseResponse, $fieldName, $choiceId = null)
+    {
+        $suggetions = $this->getRelaxationSuggestionResults($chooseResponse, $choiceId);
+        $facets = $chooseResponse->getFacets($choiceId, $this->relaxationEnabled);
+        if (count($suggetions)) {
+            $suggestion = $suggetions[0];
+            $facets->setFacetResponse($suggestion->facetResponses);
+        }
+
+        return $this->getFacetValues($facets, $fieldName);
+    }
+
+    /**
+     * @param BxChooseResponse $chooseResponse
+     * @param $fieldName
+     * @param null $choiceId
+     * @return array
+     */
+    public function extractSubphraseFacet(BxChooseResponse $chooseResponse, $fieldName, $choiceId = null)
+    {
+        $subphrases = $this->getRelaxationSubphraseResults($chooseResponse);
+        $facets = $chooseResponse->getFacets($choiceId, $this->relaxationEnabled);
+
+        if (count($subphrases)) {
+            $subphrase = $subphrases[0];
+            $facets->setFacetResponse($subphrase->facetResponses);
+        }
+
+        return $this->getFacetValues($facets, $fieldName);
+    }
+
+    /**
+     * @return BxChooseResponse
+     */
+    public function getResponse()
+    {
+        return $this->getClient()->getResponse();
+    }
+
+    /**
+     * @param BxChooseResponse $chooseResponse
+     * @param null $choiceId
+     * @return null
+     */
+    public function extractResults(BxChooseResponse $chooseResponse, $choiceId = null)
+    {
+        $variant = $chooseResponse->getChoiceResponseVariant($choiceId);
+
+        $results = $chooseResponse->getVariantSearchResult($variant, $this->relaxationEnabled);
+
+        return $results;
+
+    }
+
+    /**
      * @return BoxalinoClient
      */
     public function getClient()
     {
         if (!$this->client) {
+
             $this->client = new BoxalinoClient(
                 $this->username,
                 $this->password,
-                $this->request->getHost(),
-                $this->language
+                $this->domain
             );
 
             $this->client->setProfileId($this->getProfileId());
@@ -229,6 +459,9 @@ class HttpP13nHelper
         return $this->client;
     }
 
+    /**
+     * @return string
+     */
     public function getProfileId()
     {
         if (!$this->profileId) {
@@ -250,6 +483,10 @@ class HttpP13nHelper
         if (is_null($request)) {
             $request = $this->request;
         }
+        if (!$request) {
+            return '';
+        }
+
         $this->setCemvCookie($request->cookies->get('cemv', null));
         return $this->cemvCookie;
     }
@@ -261,23 +498,6 @@ class HttpP13nHelper
     {
         $this->profileId = $cemv = is_null($cemv) ? $this->generateRandomId() : $cemv;
         $this->cemvCookie = new Cookie('cemv', $cemv, new \DateTime('+3 months'), '/', null, false, false);
-    }
-
-    /**
-     * @param int $bytes
-     * @return string
-     */
-    public function generateRandomId($bytes = 16)
-    {
-        $id = '';
-        if (function_exists('openssl_random_pseudo_bytes')) {
-            $id = bin2hex(openssl_random_pseudo_bytes($bytes));
-        }
-        if (empty($id)) {
-            $id = uniqid('', true);
-        }
-
-        return $id;
     }
 
     /**
@@ -304,6 +524,9 @@ class HttpP13nHelper
         if (is_null($request)) {
             $request = $this->request;
         }
+        if (!$request) {
+            return '';
+        }
         $this->setCemsCookie($request->cookies->get('cems', null));
         return $this->cemsCookie;
     }
@@ -317,78 +540,21 @@ class HttpP13nHelper
         $this->cemsCookie = new Cookie('cems', $cems, 0, '/', null, false, false);
     }
 
-    public function getResponse()
-    {
-        return $this->getClient()->getResponse();
-    }
-
     /**
-     * @param $choiceResponse
-     * @param array $choiceIds
-     * @return array
+     * @param int $bytes
+     * @return string
      */
-    public function extractResults($choiceResponse, $choiceIds = array())
+    public function generateRandomId($bytes = 16)
     {
-        $results = array();
-        $count = 0;
-        $choiceIdCount = is_array($choiceIds) ? count($choiceIds) : 0;
-        /** @var \com\boxalino\p13n\api\thrift\Variant $variant */
-        foreach ($choiceResponse->variants as $variant) {
-            /** @var \com\boxalino\p13n\api\thrift\SearchResult $searchResult */
-            $searchResult = $variant->searchResult;
-            if ($choiceIdCount) {
-                list($configOption, $choiceId) = each($choiceIds);
-                $results[$configOption] = array(
-                    'results' => $this->extractResultsFromHits($searchResult->hits),
-                    'count' => $searchResult->totalHitCount,
-                    '_widgetTitle' => $variant->searchResultTitle
-                );
-            } else {
-                $count += $searchResult->totalHitCount;
-                $this->extractResultsFromHits($searchResult->hits, $results);
-            }
-            // Widget's meta data, mostly used for event tracking
+        $id = '';
+        if (function_exists('openssl_random_pseudo_bytes')) {
+            $id = bin2hex(openssl_random_pseudo_bytes($bytes));
         }
-        if ($choiceIdCount) {
-            return $results;
-        } else {
-            return array('results' => $results, 'count' => $count);
-        }
-    }
-
-    public function extractResultsFromHits($hits, &$results = array())
-    {
-        /** @var \com\boxalino\p13n\api\thrift\Hit $item */
-        foreach ($hits as $item) {
-            $result = array();
-            foreach ($item->values as $key => $value) {
-                if (is_array($value) && count($value) == 1) {
-                    $result[$key] = array_shift($value);
-                } else {
-                    $result[$key] = $value;
-                }
-            }
-            $results[] = $result;
+        if (empty($id)) {
+            $id = uniqid('', true);
         }
 
-        return $results;
-    }
-
-    public function extractFacet(BxFacets $facets, $fieldName)
-    {
-
-        $facetArray = array();
-        //loop on the search response hit ids and print them
-        foreach ($facets->getFacetValues($fieldName) as $fieldValue) {
-            $facetArray[] = array(
-                'parameterValue' => $facets->getFacetValueParameterValue($fieldName, $fieldValue),
-                'stringValue' => $facets->getFacetValueLabel($fieldName, $fieldValue),
-                'selected' => $facets->isFacetValueSelected($fieldName, $fieldValue),
-                'hitCount' => $facets->getFacetValueCount($fieldName, $fieldValue),
-            );
-        }
-
-        return $facetArray;
+        return $id;
     }
 
     /**
@@ -405,50 +571,6 @@ class HttpP13nHelper
     public function setRelaxationEnabled($relaxationEnabled)
     {
         $this->relaxationEnabled = $relaxationEnabled;
-    }
-
-    /**
-     * @param array $returnFields
-     * @param $queryText
-     * @param int $hitCount
-     * @return AutocompleteResponse
-     */
-    public function autocomplete(array $returnFields, $queryText, $hitCount = 5, $suggestionCount = 5)
-    {
-        $bxRequest = new BxAutocompleteRequest($this->language, $queryText, $hitCount, $suggestionCount,
-            $this->autocompleteWidgetId, $this->searchWidgetId);
-
-        //set the fields to be returned for each item in the response
-        $bxRequest->getBxSearchRequest()->setReturnFields($returnFields);
-
-        //set the request
-        $this->getClient()->setAutocompleteRequest($bxRequest);
-
-        //make the query to Boxalino server and get back the response for all requests
-        return $this->getClient()->getAutocompleteResponse();
-    }
-
-    /**
-     * Retrieve the suggestions from the autocomplete response
-     *
-     * @param AutocompleteResponse $response
-     * @return array
-     */
-    public function getAutocompleteSuggestions(AutocompleteResponse $response)
-    {
-        $suggestions = array();
-        /** @var AutocompleteHit $hit */
-        foreach ($response->hits as $hit) {
-            $results = array();
-            $this->extractResultsFromHits($hit->searchResult->hits, $results);
-            $suggestions[] = array(
-                'text' => $hit->suggestion,
-                'html' => (strlen($hit->highlighted) ? $hit->highlighted : $hit->suggestion),
-                'searchResults' => $results,
-                'hits' => $hit->searchResult->totalHitCount,
-            );
-        }
-        return $suggestions;
     }
 
     /**
@@ -484,56 +606,6 @@ class HttpP13nHelper
     }
 
     /**
-     * Retrieve recommendations based on an id and/or selected context
-     *
-     * @param array $returnFields
-     * @param $id
-     * @param int $offset
-     * @param int $hitCount
-     * @param string $fieldName
-     * @param array $contexts
-     * @return \com\boxalino\bxclient\v1\BxChooseResponse
-     */
-    public function findRawRecommendations(array $returnFields, $id, $offset = 0, $hitCount = 5,
-                                           $fieldName = 'id', $contexts = array('search'))
-    {
-        foreach($contexts as $context){
-            $bxRequestSimilar = new BxRecommendationRequest($this->language, $context, $hitCount);
-            $bxRequestSimilar->setOffset($offset);
-            $bxRequestSimilar->setReturnFields($returnFields);
-            //indicate the product the user is looking at now (reference of what the recommendations need to be similar to)
-            $bxRequestSimilar->setProductContext($fieldName, $id);
-            //add the request
-            $this->getClient()->addRequest($bxRequestSimilar);
-        }
-
-        return $this->getResponse();
-    }
-
-    /**
-     * @return ChoiceRequest
-     */
-    public function getChoiceRequest()
-    {
-        $choiceRequest = new ChoiceRequest();
-
-        // Setup information about account
-        $userRecord = new UserRecord();
-        $userRecord->username = $this->account;
-        $choiceRequest->userRecord = $userRecord;
-
-        return $choiceRequest;
-    }
-
-    /**
-     * @return \com\boxalino\bxclient\v1\BxChooseResponse
-     */
-    public function choose()
-    {
-        return $this->getClient()->getResponse();
-    }
-
-    /**
      * @return string
      */
     public function getLanguage()
@@ -549,73 +621,6 @@ class HttpP13nHelper
     public function setLanguage($language)
     {
         $this->language = substr($language, 0, 2);
-    }
-
-    /**
-     * Get extra results if results too little from sugestions
-     *
-     * @param ChoiceResponse $response
-     * @return array
-     */
-    public function getRelaxationSuggestions(ChoiceResponse $response)
-    {
-        $suggestions = array();
-        if ($this->relaxationEnabled) {
-            /** @var \com\boxalino\p13n\api\thrift\Variant $variant */
-            foreach ($response->variants as $variant) {
-                if (is_object($variant->searchRelaxation)) {
-                    /** @var \com\boxalino\p13n\api\thrift\SearchResult $searchResult */
-                    foreach ($variant->searchRelaxation->suggestionsResults as $searchResult) {
-                        $suggestions[] = array(
-                            'text' => $searchResult->queryText,
-                            'count' => $searchResult->totalHitCount,
-                            'results' => $this->extractResultsFromHitGroups($searchResult->hitsGroups),
-                        );
-                    }
-                }
-            }
-        }
-        return $suggestions;
-    }
-
-    public function extractResultsFromHitGroups($hitsGroups, &$results = array())
-    {
-        if (!is_array($hitsGroups)) {
-            return $results;
-        }
-
-        /** @var \com\boxalino\p13n\api\thrift\HitsGroup $group */
-        foreach ($hitsGroups as $group) {
-            $this->extractResultsFromHits($group->hits, $results);
-        }
-        return $results;
-    }
-
-    /**
-     * Get extra results if results too little from sub-phrases
-     *
-     * @param ChoiceResponse $response
-     * @return array
-     */
-    public function getRelaxationSubphraseResults(ChoiceResponse $response)
-    {
-        $subphrases = array();
-        if ($this->relaxationEnabled) {
-            /** @var \com\boxalino\p13n\api\thrift\Variant $variant */
-            foreach ($response->variants as $variant) {
-                if (is_object($variant->searchRelaxation)) {
-                    /** @var \com\boxalino\p13n\api\thrift\SearchResult $searchResult */
-                    foreach ($variant->searchRelaxation->subphrasesResults as $searchResult) {
-                        $subphrases[] = array(
-                            'text' => $searchResult->queryText,
-                            'count' => $searchResult->totalHitCount,
-                            'results' => $this->extractResultsFromHitGroups($searchResult->hitsGroups),
-                        );
-                    }
-                }
-            }
-        }
-        return $subphrases;
     }
 
 }
