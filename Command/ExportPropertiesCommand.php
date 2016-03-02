@@ -65,13 +65,8 @@ EOT
         if (!$result) {
             return 1;
         }
-        $publish = 'false';
 
-        if ($input->getOption('publish')) {
-            $publish = 'true';
-        }
-
-        $this->publishProperties($publish, $output);
+        $this->publishProperties($output, $input->getOption('publish'));
 
         return 0;
     }
@@ -99,13 +94,17 @@ EOT
     }
 
     /**
-     * @param string $publish
      * @param OutputInterface $output
+     * @param bool|false $publish
      * @return bool
      */
-    protected function publishProperties($publish = 'false', OutputInterface $output)
+    protected function publishProperties(OutputInterface $output, $publish = false)
     {
-        $response = $this->exporter->publishXml($publish);
+        if($publish){
+            $response = $this->exporter->publishXmlChanges();
+        }else{
+            $response = $this->exporter->checkXmlChanges();
+        }
 
         if (array_key_exists('error_type_number', $response)) {
             $output->writeln(sprintf('<error>Exporter exited with the following message: "%s"</error>', $response['message']));

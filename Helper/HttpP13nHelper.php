@@ -1,24 +1,20 @@
 <?php
 namespace Ibrows\BoxalinoBundle\Helper;
 
+use com\boxalino\bxclient\v1\BxAutocompleteRequest;
+use com\boxalino\bxclient\v1\BxAutocompleteResponse;
+use com\boxalino\bxclient\v1\BxChooseResponse;
+use com\boxalino\bxclient\v1\BxFacets;
+use com\boxalino\bxclient\v1\BxFilter;
+use com\boxalino\bxclient\v1\BxRecommendationRequest;
+use com\boxalino\bxclient\v1\BxRequest;
+use com\boxalino\bxclient\v1\BxSearchRequest;
 use com\boxalino\p13n\api\thrift\AutocompleteHit;
-use com\boxalino\p13n\api\thrift\AutocompleteQuery;
-use com\boxalino\p13n\api\thrift\AutocompleteRequest;
 use com\boxalino\p13n\api\thrift\AutocompleteResponse;
-use com\boxalino\p13n\api\thrift\ChoiceInquiry;
-use com\boxalino\p13n\api\thrift\ChoiceRequest;
-use com\boxalino\p13n\api\thrift\ChoiceResponse;
-use com\boxalino\p13n\api\thrift\ContextItem;
-use com\boxalino\p13n\api\thrift\FacetRequest;
-use com\boxalino\p13n\api\thrift\FacetValue;
-use com\boxalino\p13n\api\thrift\Filter;
-use com\boxalino\p13n\api\thrift\RequestContext;
-use com\boxalino\p13n\api\thrift\SimpleSearchQuery;
-use com\boxalino\p13n\api\thrift\SortField;
-use com\boxalino\p13n\api\thrift\UserRecord;
+use Ibrows\BoxalinoBundle\Lib\BoxalinoClient;
 use Symfony\Component\HttpFoundation\Cookie;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
-use Thrift\HttpP13n;
 
 /**
  * Class HttpP13nService
@@ -28,27 +24,27 @@ use Thrift\HttpP13n;
 class HttpP13nHelper
 {
     /**
-     * @var HttpP13n
+     * @var BoxalinoClient
      */
     protected $client;
 
     /**
-     * @var
+     * @var string
      */
     protected $account;
 
     /**
-     * @var
+     * @var string
      */
     protected $username;
 
     /**
-     * @var
+     * @var string
      */
     protected $password;
 
     /**
-     * @var
+     * @var string
      */
     protected $host = 'cdn.bx-cloud.com';
 
@@ -60,20 +56,10 @@ class HttpP13nHelper
     /**
      * @var string
      */
-    protected $highlightPreTag = '<em>';
-
-    /**
-     * @var string
-     */
-    protected $highlightPostTag = '</em>';
-
-    /**
-     * @var
-     */
     protected $searchWidgetId = 'search';
 
     /**
-     * @var
+     * @var string
      */
     protected $autocompleteWidgetId = 'autocomplete';
 
@@ -83,53 +69,61 @@ class HttpP13nHelper
     protected $language = 'en';
 
     /**
-     * HttpP13nService constructor.
+     * @var string
+     */
+    protected $domain;
+
+    /**
+     * @var Request
+     */
+    protected $request;
+
+    /**
+     * @var string
+     */
+    protected $sessionId;
+
+    /**
+     * @var string
+     */
+    protected $profileId;
+
+    /**
+     * @var Cookie
+     */
+    protected $cemsCookie;
+
+    /**
+     * @var Cookie
+     */
+    protected $cemvCookie;
+
+    /**
+     * HttpP13nHelper constructor.
+     * @param RequestStack $requestStack
      * @param $account
      * @param $username
      * @param $password
      */
-    public function __construct($account, $username, $password)
+    public function __construct(RequestStack $requestStack, $account, $username, $password)
     {
         $this->account = $account;
         $this->username = $username;
         $this->password = $password;
-        $this->getClient();
+        $this->setRequest($requestStack);
     }
 
     /**
-     * @param null $cemv
-     * @return Cookie
+     * @param RequestStack $requestStack
      */
-    public function createCemvCookie($cemv = null)
+    public function setRequest(RequestStack $requestStack)
     {
-        $cemv = is_null($cemv) ? $this->generateRandomId() : $cemv;
-        return new Cookie('cemv', $cemv, new \DateTime('+3 months'), '/', null, false, false);
-    }
+        $this->request = $requestStack->getCurrentRequest();
 
-    /**
-     * @param null $cems
-     * @return Cookie
-     */
-    public function createCemsCookie($cems = null)
-    {
-        $cems = is_null($cems) ? $this->generateRandomId(24) : $cems;
-        return new Cookie('cems', $cems, 0, '/', null, false, false);
-    }
-
-    /**
-     * @param int $bytes
-     * @return string
-     */
-    public function generateRandomId($bytes = 16){
-        $id = '';
-        if (function_exists('openssl_random_pseudo_bytes')) {
-            $id = bin2hex(openssl_random_pseudo_bytes($bytes));
+        if ($this->request) {
+            $this->setLanguage($this->request->getLocale());
+            $this->domain = $this->request->getHost();
         }
-        if (empty($id)) {
-            $id = uniqid('', true);
-        }
-
-        return $id;
     }
 
     /**
@@ -140,262 +134,427 @@ class HttpP13nHelper
      * @param array $filters
      * @param array $facets
      * @param array $sortFields
-     * @return \com\boxalino\p13n\api\thrift\ChoiceResponse
+     * @param bool|false $orFilters
+     * @return \com\boxalino\bxclient\v1\BxChooseResponse
      */
     public function search(array $returnFields, $queryText = null, $offset = 0, $hitCount = 12,
-                           $filters = array(), $facets = array(), $sortFields = array())
+                           $filters = array(), $facets = array(), $sortFields = array(), $orFilters = false)
     {
-        $choiceRequest = $this->getChoiceRequest();
-        // Setup main choice inquiry object
-        $inquiry = new ChoiceInquiry();
-        $inquiry->choiceId = $this->searchWidgetId;
-        $inquiry->withRelaxation = $this->relaxationEnabled;
+        $bxRequest = $this->createSearchRequest($returnFields, $queryText, $offset, $hitCount, $filters, $facets,
+            $sortFields, $orFilters);
 
-        $searchQuery = $this->getSimpleSearchQuery($returnFields, $queryText, $offset, $hitCount);
+        $this->addRequest($bxRequest);
+
+        // Call the service
+        return $this->getResponse();
+    }
+
+    public function createSearchRequest(array $returnFields, $queryText = null, $offset = 0, $hitCount = 12,
+                                        $filters = array(), $facets = array(), $sortFields = array(), $orFilters = false)
+    {
+        $bxRequest = new BxSearchRequest($this->language, $queryText, $hitCount);
+        $bxRequest->setIndexId($this->account);
+        $bxRequest->setReturnFields($returnFields);
+        $bxRequest->setOffset($offset);
+
+        foreach ($filters as $filter) {
+            $this->addFilter($bxRequest, $filter);
+        }
+        $bxRequest->setOrFilters($orFilters);
+        $this->setFacets($bxRequest, $facets);
+        foreach ($sortFields as $sortField) {
+            $reverse = array_key_exists('reverse', $sortField) ? true : false;
+            $bxRequest->addSortField($sortField['fieldName'], $reverse);
+        }
+
+        return $bxRequest;
+    }
+
+    /**
+     * @param BxSearchRequest $bxRequest
+     */
+    public function addRequest(BxSearchRequest $bxRequest)
+    {
+        $this->getClient()->addRequest($bxRequest);
+    }
+
+    /**
+     * @param array $returnFields
+     * @param $queryText
+     * @param int $hitCount
+     * @param int $suggestionCount
+     * @param array $filters
+     * @return null
+     */
+    public function autocomplete(array $returnFields, $queryText, $hitCount = 5, $suggestionCount = 5, $filters = array())
+    {
+        $bxRequest = $this->createAutocompleteRequest($returnFields, $queryText, $hitCount, $suggestionCount, $filters);
+
+        //make the query to Boxalino server and get back the response for all requests
+        return $this->getAutocompleteResponses(array($bxRequest));
+    }
+
+    /**
+     * @param array $returnFields
+     * @param $queryText
+     * @param int $hitCount
+     * @param int $suggestionCount
+     * @return BxAutocompleteRequest
+     */
+    public function createAutocompleteRequest(array $returnFields, $queryText, $hitCount = 5, $suggestionCount = 5, $filters = array())
+    {
+        $bxRequest = new BxAutocompleteRequest($this->language, $queryText, $hitCount, $suggestionCount,
+            $this->autocompleteWidgetId, $this->searchWidgetId);
+
+        //set the fields to be returned for each item in the response
+        $bxRequest->getBxSearchRequest()->setReturnFields($returnFields);
 
 
         foreach ($filters as $filter) {
-            $this->addFilter($searchQuery, $filter);
+            $this->addFilter($bxRequest->getBxSearchRequest(), $filter);
         }
+
+        return $bxRequest;
+    }
+
+    /**
+     * @param array $requests
+     * @return AutocompleteResponse
+     */
+    public function getAutocompleteResponses(array $requests)
+    {
+        $this->getClient()->setAutocompleteRequests($requests);
+
+        return $this->getClient()->getAutocompleteResponses();
+    }
+
+    /**
+     * @param BxAutocompleteResponse $response
+     * @return array
+     */
+    public function getAutocompleteSuggestions(BxAutocompleteResponse $response)
+    {
+        $suggestions = array();
+        /** @var AutocompleteHit $hit */
+        foreach ($response->getResponse()->hits as $hit) {
+            $suggestions[] = array(
+                'text' => $hit->suggestion,
+                'html' => (strlen($hit->highlighted) ? $hit->highlighted : $hit->suggestion),
+                'searchResults' => $hit->searchResult->hits,
+                'hits' => $hit->searchResult->totalHitCount,
+            );
+        }
+        return $suggestions;
+    }
+
+    /**
+     * Retrieve recommendations based on an id and/or selected context
+     *
+     * @param array $returnFields
+     * @param $id
+     * @param int $offset
+     * @param int $hitCount
+     * @param string $fieldName
+     * @param array $contexts
+     * @return \com\boxalino\bxclient\v1\BxChooseResponse
+     */
+    public function findRawRecommendations(array $returnFields, $id, $offset = 0, $hitCount = 5,
+                                           $fieldName = 'id', $contexts = array('search'))
+    {
+        foreach ($contexts as $context) {
+            $bxRequestSimilar = new BxRecommendationRequest($this->language, $context, $hitCount);
+            $bxRequestSimilar->setOffset($offset);
+            $bxRequestSimilar->setReturnFields($returnFields);
+            //indicate the product the user is looking at now (reference of what the recommendations need to be similar to)
+            $bxRequestSimilar->setProductContext($fieldName, $id);
+            //add the request
+            $this->getClient()->addRequest($bxRequestSimilar);
+        }
+
+        return $this->getResponse();
+    }
+
+    /**
+     * Get extra results if results too little from sugestions
+     *
+     * @param BxChooseResponse $chooseResponse
+     * @param null $choiceId
+     * @return array
+     */
+    public function getRelaxationSuggestionResults(BxChooseResponse $chooseResponse, $choiceId = null)
+    {
+        $suggestions = array();
+        if ($this->relaxationEnabled) {
+            $variant = $chooseResponse->getChoiceResponseVariant($choiceId);
+            if ($variant->searchRelaxation) {
+                $suggestions = $variant->searchRelaxation->suggestionsResults;
+            }
+        }
+        return $suggestions;
+    }
+
+    /**
+     * Get extra results if results too little from sub-phrases
+     *
+     * @param BxChooseResponse $chooseResponse
+     * @param null $choiceId
+     * @return array
+     */
+    public function getRelaxationSubphraseResults(BxChooseResponse $chooseResponse, $choiceId = null)
+    {
+        $subphrases = array();
+        if ($this->relaxationEnabled) {
+            $variant = $chooseResponse->getChoiceResponseVariant($choiceId);
+            $subphrases = $variant->searchRelaxation->subphrasesResults;
+        }
+        return $subphrases;
+    }
+
+    /**
+     * @param BxRequest $bxRequest
+     * @param array|BxFilter $filter
+     * @param bool|false $negative
+     */
+    protected function addFilter(BxRequest $bxRequest, $filter, $negative = false)
+    {
+        if (!$filter instanceof BxFilter) {
+            $filter = new BxFilter($filter['fieldName'], $filter['values'], $negative);
+        }
+
+        $bxRequest->addFilter($filter);
+    }
+
+    /**
+     * @param BxRequest $bxRequest
+     * @param $facets
+     */
+    protected function setFacets(BxRequest $bxRequest, $facets)
+    {
+        $bxFacets = new BxFacets();
 
         foreach ($facets as $facet) {
-            $this->addFacet($searchQuery, $facet);
+            if (array_key_exists('values', $facet)) {
+                $bxFacets->addFacet($facet['fieldName'], $facet['values']);
+            } else {
+                $bxFacets->addFacet($facet['fieldName']);
+            }
         }
 
-        foreach ($sortFields as $sortField) {
-            $this->addSortField($searchQuery, $sortField);
-        }
-
-        // Connect search query to the inquiry
-        $inquiry->simpleSearchQuery = $searchQuery;
-
-
-        // Add inquiry to choice request
-        $choiceRequest->inquiries = array($inquiry);
-
-        // Call the service
-        return $this->choose($choiceRequest);
+        $bxRequest->setFacets($bxFacets);
 
     }
 
     /**
-     * @return ChoiceRequest
+     * @param BxChooseResponse $chooseResponse
+     * @param $fieldName
+     * @param null $choiceId
+     * @return array
      */
-    public function getChoiceRequest()
+    public function extractFacet(BxChooseResponse $chooseResponse, $fieldName, $choiceId = null)
     {
-        $choiceRequest = new ChoiceRequest();
+        $facets = $chooseResponse->getFacets($choiceId, $this->relaxationEnabled);
 
-        // Setup information about account
-        $userRecord = new UserRecord();
-        $userRecord->username = $this->account;
-        $choiceRequest->userRecord = $userRecord;
+        return $this->getFacetValues($facets, $fieldName);
 
-        return $choiceRequest;
     }
 
     /**
-     * @return HttpP13n
+     * @param BxFacets $facets
+     * @param $fieldName
+     * @return array
+     */
+    protected function getFacetValues(BxFacets $facets, $fieldName)
+    {
+        $facetArray = array();
+        //loop on the search response hit ids and print them
+        foreach ($facets->getFacetValues($fieldName) as $fieldValue) {
+            $facetArray[] = array(
+                'parameterValue' => $facets->getFacetValueParameterValue($fieldName, $fieldValue),
+                'stringValue' => $facets->getFacetValueLabel($fieldName, $fieldValue),
+                'selected' => $facets->isFacetValueSelected($fieldName, $fieldValue),
+                'hitCount' => $facets->getFacetValueCount($fieldName, $fieldValue),
+            );
+        }
+
+        return $facetArray;
+    }
+
+    /**
+     * @param BxChooseResponse $chooseResponse
+     * @param $fieldName
+     * @param null $choiceId
+     * @return array
+     */
+    public function extractSuggestionFacet(BxChooseResponse $chooseResponse, $fieldName, $choiceId = null)
+    {
+        $suggetions = $this->getRelaxationSuggestionResults($chooseResponse, $choiceId);
+        $facets = $chooseResponse->getFacets($choiceId, $this->relaxationEnabled);
+        if (count($suggetions)) {
+            $suggestion = $suggetions[0];
+            $facets->setFacetResponse($suggestion->facetResponses);
+        }
+
+        return $this->getFacetValues($facets, $fieldName);
+    }
+
+    /**
+     * @param BxChooseResponse $chooseResponse
+     * @param $fieldName
+     * @param null $choiceId
+     * @return array
+     */
+    public function extractSubphraseFacet(BxChooseResponse $chooseResponse, $fieldName, $choiceId = null)
+    {
+        $subphrases = $this->getRelaxationSubphraseResults($chooseResponse);
+        $facets = $chooseResponse->getFacets($choiceId, $this->relaxationEnabled);
+
+        if (count($subphrases)) {
+            $subphrase = $subphrases[0];
+            $facets->setFacetResponse($subphrase->facetResponses);
+        }
+
+        return $this->getFacetValues($facets, $fieldName);
+    }
+
+    /**
+     * @return BxChooseResponse
+     */
+    public function getResponse()
+    {
+        return $this->getClient()->getResponse();
+    }
+
+    /**
+     * @param BxChooseResponse $chooseResponse
+     * @param null $choiceId
+     * @return null
+     */
+    public function extractResults(BxChooseResponse $chooseResponse, $choiceId = null)
+    {
+        $variant = $chooseResponse->getChoiceResponseVariant($choiceId);
+
+        $results = $chooseResponse->getVariantSearchResult($variant, $this->relaxationEnabled);
+
+        return $results;
+
+    }
+
+    /**
+     * @return BoxalinoClient
      */
     public function getClient()
     {
-
         if (!$this->client) {
-            $this->client = new HttpP13n();
-            $this->client->setHost($this->host);
-            $this->client->setAuthorization($this->username, $this->password);
+
+            $this->client = new BoxalinoClient(
+                $this->username,
+                $this->password,
+                $this->domain
+            );
+
+            $this->client->setProfileId($this->getProfileId());
+            $this->client->setSessionId($this->getSessionId());
         }
 
         return $this->client;
     }
 
     /**
-     * @param array $returnFields
-     * @param null $queryText
-     * @param int $offset
-     * @param int $hitCount
-     * @return SimpleSearchQuery
+     * @return string
      */
-    public function getSimpleSearchQuery(array $returnFields, $queryText = null, $offset = 0, $hitCount = 5)
+    public function getProfileId()
     {
-        $searchQuery = new SimpleSearchQuery();
-        $searchQuery->indexId = $this->account;
-        $searchQuery->returnFields = $returnFields;
-        if($queryText){
-            $searchQuery->queryText = $queryText;
+        if (!$this->profileId) {
+            $this->getCemvCookie();
         }
 
-        $searchQuery->language = $this->language;
-        $searchQuery->offset = $offset;
-        $searchQuery->hitCount = $hitCount;
-
-        return $searchQuery;
+        return $this->profileId;
     }
 
     /**
-     * @param SimpleSearchQuery $searchQuery
-     * @param array|Filter $filter
+     * @param Request|null $request
+     * @return Cookie
      */
-    protected function addFilter(SimpleSearchQuery $searchQuery, $filter)
+    public function getCemvCookie(Request $request = null)
     {
-        if (!$filter instanceof Filter) {
-            $filter = new Filter($filter);
+        if ($this->cemvCookie) {
+            return $this->cemvCookie;
         }
-        $searchQuery->filters[] = $filter;
+        if (is_null($request)) {
+            $request = $this->request;
+        }
+        if (!$request) {
+            return '';
+        }
+
+        $this->setCemvCookie($request->cookies->get('cemv', null));
+        return $this->cemvCookie;
     }
 
     /**
-     * @param SimpleSearchQuery $searchQuery
-     * @param array|FacetRequest $facet
+     * @param null $cemv
      */
-    protected function addFacet(SimpleSearchQuery $searchQuery, $facet)
+    public function setCemvCookie($cemv = null)
     {
-        if (!$facet instanceof FacetRequest) {
-            $facet = $this->buildFacetReqeust($facet);
-        }
-        $searchQuery->facetRequests[] = $facet;
+        $this->profileId = $cemv = is_null($cemv) ? $this->generateRandomId() : $cemv;
+        $this->cemvCookie = new Cookie('cemv', $cemv, new \DateTime('+3 months'), '/', null, false, false);
     }
 
     /**
-     * @param array $facet
-     * @return FacetRequest
+     * @return string
      */
-    protected function buildFacetReqeust(array $facet)
+    public function getSessionId()
     {
-        $selectedValues = array();
-        if (array_key_exists('values', $facet) && is_array($facet['values'])) {
-
-            if (array_key_exists('start', $facet['values'])) {
-                $facetOptions = array(
-                    'numerical' => true,
-                    'range' => true,
-                    'selectedValues' => array(new FacetValue(
-                        array('rangeFromInclusive' => $facet['values']['start'],
-                            'rangeToExclusive' => $facet['values']['end'])
-                    ))
-                );
-            } else {
-                foreach ($facet['values'] as $value) {
-                    $selectedValues[] = new FacetValue(array('stringValue' => $value));
-                }
-                $facetOptions['selectedValues'] = $selectedValues;
-            }
+        if (!$this->sessionId) {
+            $this->getCemsCookie();
         }
-        $facetOptions['fieldName'] = $facet['fieldName'];
 
-        return new FacetRequest($facetOptions);
+        return $this->sessionId;
     }
 
     /**
-     * @param SimpleSearchQuery $searchQuery
-     * @param array|SortField $sortField
+     * @param Request|null $request
+     * @return Cookie
      */
-    public function addSortField(SimpleSearchQuery $searchQuery, $sortField)
+    public function getCemsCookie(Request $request = null)
     {
-        if (!$sortField instanceof SortField) {
-            $sortField = $this->buildSortField($sortField);
+        if ($this->cemsCookie) {
+            return $this->cemsCookie;
         }
-        $searchQuery->sortFields[] = $sortField;
+        if (is_null($request)) {
+            $request = $this->request;
+        }
+        if (!$request) {
+            return '';
+        }
+        $this->setCemsCookie($request->cookies->get('cems', null));
+        return $this->cemsCookie;
     }
 
     /**
-     * @param array $sortField
-     * @return SortField
+     * @param null $cems
      */
-    protected function buildSortField(array $sortField)
+    public function setCemsCookie($cems = null)
     {
-        return new SortField(array(
-            'fieldName' => $sortField['fieldName'],
-            'reverse' => array_key_exists('reverse', $sortField) ? $sortField['reverse'] : false
-        ));
-
+        $this->sessionId = $cems = is_null($cems) ? $this->generateRandomId(24) : $cems;
+        $this->cemsCookie = new Cookie('cems', $cems, 0, '/', null, false, false);
     }
 
     /**
-     * @param ChoiceRequest $choiceRequest
-     * @return \com\boxalino\p13n\api\thrift\ChoiceResponse
+     * @param int $bytes
+     * @return string
      */
-    public function choose(ChoiceRequest $choiceRequest)
+    public function generateRandomId($bytes = 16)
     {
-        return $this->getClient()->choose($choiceRequest);
-    }
-
-    public function extractResults($choiceResponse, $choiceIds = array())
-    {
-        $results = array();
-        $count = 0;
-        $choiceIdCount = is_array($choiceIds) ? count($choiceIds) : 0;
-        /** @var \com\boxalino\p13n\api\thrift\Variant $variant */
-        foreach ($choiceResponse->variants as $variant) {
-            /** @var \com\boxalino\p13n\api\thrift\SearchResult $searchResult */
-            $searchResult = $variant->searchResult;
-            if ($choiceIdCount) {
-                list($configOption, $choiceId) = each($choiceIds);
-                $results[$configOption] = array(
-                    'results' => $this->extractResultsFromHits($searchResult->hits),
-                    'count' => $searchResult->totalHitCount,
-                    '_widgetTitle' => $variant->searchResultTitle
-                );
-            } else {
-                $count += $searchResult->totalHitCount;
-                $this->extractResultsFromHits($searchResult->hits, $results);
-            }
-            // Widget's meta data, mostly used for event tracking
+        $id = '';
+        if (function_exists('openssl_random_pseudo_bytes')) {
+            $id = bin2hex(openssl_random_pseudo_bytes($bytes));
         }
-        if ($choiceIdCount) {
-            return $results;
-        } else {
-            return array('results' => $results, 'count' => $count);
-        }
-    }
-
-    public function extractResultsFromHits($hits, &$results = array())
-    {
-        /** @var \com\boxalino\p13n\api\thrift\Hit $item */
-        foreach ($hits as $item) {
-            $result = array();
-            foreach ($item->values as $key => $value) {
-                if (is_array($value) && count($value) == 1) {
-                    $result[$key] = array_shift($value);
-                } else {
-                    $result[$key] = $value;
-                }
-            }
-            $results[] = $result;
+        if (empty($id)) {
+            $id = uniqid('', true);
         }
 
-        return $results;
-    }
-
-    public function extractResultsFromHitGroups($hitsGroups, &$results = array())
-    {
-        if (!is_array($hitsGroups)) {
-            return $results;
-        }
-
-        /** @var \com\boxalino\p13n\api\thrift\HitsGroup $group */
-        foreach ($hitsGroups as $group) {
-            $this->extractResultsFromHits($group->hits, $results);
-        }
-        return $results;
-    }
-
-    /**
-     * @param $choiceResponse
-     * @param $facet
-     * @return \com\boxalino\p13n\api\thrift\FacetValue[]
-     */
-    public function extractFacet($choiceResponse, $facet)
-    {
-        $facets = array();
-        /** @var \com\boxalino\p13n\api\thrift\Variant $variant */
-        foreach ($choiceResponse->variants as $variant) {
-            foreach ($variant->searchResult->facetResponses as $facetResponse) {
-                if ($facetResponse->fieldName == $facet) {
-                    $facets = array_merge($facets, $facetResponse->values);
-                }
-            }
-        }
-        return $facets;
+        return $id;
     }
 
     /**
@@ -412,111 +571,6 @@ class HttpP13nHelper
     public function setRelaxationEnabled($relaxationEnabled)
     {
         $this->relaxationEnabled = $relaxationEnabled;
-    }
-
-    /**
-     * @param array $returnFields
-     * @param $queryText
-     * @param $cemv
-     * @param int $offset
-     * @param int $hitCount
-     * @return AutocompleteResponse
-     */
-    public function autocomplete(array $returnFields, $queryText, $cemv, $offset = 0, $hitCount = 5)
-    {
-
-        // Create main choice request object
-        $choiceRequest = $this->getChoiceRequest();
-        $autocompleteRequest = new AutocompleteRequest();
-
-        // Setup a search query
-        $searchQuery = $this->getSimpleSearchQuery($returnFields, $queryText, $offset, $hitCount);
-        $autocompleteQuery = $this->getAutocompleteQuery($queryText, $hitCount);
-
-        // Add inquiry to choice request
-        $autocompleteRequest->userRecord = $choiceRequest->userRecord;
-        $autocompleteRequest->choiceId = $this->autocompleteWidgetId;
-        $autocompleteRequest->profileId = $cemv;
-        $autocompleteRequest->autocompleteQuery = $autocompleteQuery;
-        $autocompleteRequest->searchChoiceId = $this->searchWidgetId;
-        $autocompleteRequest->searchQuery = $searchQuery;
-
-        return $choiceResponse = $this->getClient()->autocomplete($autocompleteRequest);
-    }
-
-    /**
-     * @param $queryText
-     * @param int $hitCount
-     * @return AutocompleteQuery
-     */
-    public function getAutocompleteQuery($queryText, $hitCount = 5)
-    {
-        $autocompleteQuery = new AutocompleteQuery();
-        $autocompleteQuery->indexId = $this->account;;
-        $autocompleteQuery->queryText = $queryText;
-        $autocompleteQuery->suggestionsHitCount = $hitCount;
-        $autocompleteQuery->language = $this->language;
-        $autocompleteQuery->highlight = true;
-        $autocompleteQuery->highlightPre = $this->highlightPreTag;
-        $autocompleteQuery->highlightPost = $this->highlightPostTag;
-
-        return $autocompleteQuery;
-    }
-
-
-    /**
-     * Retrieve the suggestions from the autocomplete response
-     *
-     * @param AutocompleteResponse $response
-     * @return array
-     */
-    public function getAutocompleteSuggestions(AutocompleteResponse $response)
-    {
-        $suggestions = array();
-        /** @var AutocompleteHit $hit */
-        foreach ($response->hits as $hit) {
-            $results = array();
-            $this->extractResultsFromHits($hit->searchResult->hits, $results);
-            $suggestions[] = array(
-                'text' => $hit->suggestion,
-                'html' => (strlen($hit->highlighted) ? $hit->highlighted : $hit->suggestion),
-                'searchResults' => $results,
-                'hits' => $hit->searchResult->totalHitCount,
-            );
-        }
-        return $suggestions;
-    }
-
-    /**
-     * @return string
-     */
-    public function getHighlightPreTag()
-    {
-        return $this->highlightPreTag;
-    }
-
-    /**
-     * @param string $highlightPreTag
-     */
-    public function setHighlightPreTag($highlightPreTag)
-    {
-        $this->highlightPreTag = $highlightPreTag;
-    }
-
-    /**
-     * @return string
-     */
-    public function getHighlightPostTag()
-    {
-        return $this->highlightPostTag;
-    }
-
-    /**
-     * @param string $highlightPostTag
-     */
-    public function setHighlightPostTag($highlightPostTag)
-    {
-        $this->highlightPostTag = $highlightPostTag;
     }
 
     /**
@@ -552,76 +606,6 @@ class HttpP13nHelper
     }
 
     /**
-     * Retrieve recommendations based on an id and/or selected context
-     *
-     * @param array $returnFields
-     * @param $id
-     * @param $role
-     * @param $choiceIds
-     * @param int $offset
-     * @param int $hitCount
-     * @param string $fieldName
-     * @param array $context
-     * @return \com\boxalino\p13n\api\thrift\ChoiceResponse
-     */
-    public function findRawRecommendations(array $returnFields, $id, $role, $choiceIds, $offset = 0, $hitCount = 5,
-                                           $fieldName = 'id', $context = array())
-    {
-        $choiceRequest = $this->getChoiceRequest();
-        $choiceRequest->inquiries = array();
-
-        $contextItems = array();
-
-        // Add context parameters if given
-        if (count($context)) {
-            foreach($context as $key => $value) {
-                if (!is_array($value)) {
-                    $context[$key] = array($value);
-                }
-            }
-            $requestContext = new RequestContext();
-            $requestContext->parameters = $context;
-            $choiceRequest->requestContext = $requestContext;
-        }
-
-        // Setup a context item
-        if (!empty($id)) {
-            $contextItems = array(
-                new ContextItem(array(
-                    'indexId' => $this->account,
-                    'fieldName' => $fieldName,
-                    'contextItemId' => $id,
-                    'role' => $role
-                ))
-            );
-        }
-
-        // Setup a search query
-        $searchQuery = $this->getSimpleSearchQuery($returnFields, null, $offset, $hitCount);
-
-        if (!is_array($choiceIds)) {
-            $choiceIds = array($choiceIds);
-        }
-        foreach ($choiceIds as $choiceId) {
-            // Setup main choice inquiry object
-            $inquiry = new ChoiceInquiry();
-            $inquiry->choiceId = $choiceId;
-            $inquiry->minHitCount = $hitCount;
-
-            // Connect search query to the inquiry
-            $inquiry->simpleSearchQuery = $searchQuery;
-            if (!empty($id))$inquiry->contextItems = $contextItems;
-
-            // Add inquiry to choice request
-            $choiceRequest->inquiries[] = $inquiry;
-        }
-
-        $choiceResponse = $this->choose($choiceRequest);
-
-        return $choiceResponse;
-    }
-
-    /**
      * @return string
      */
     public function getLanguage()
@@ -632,69 +616,11 @@ class HttpP13nHelper
     /**
      * Set the language to search in either from request or manually
      *
-     * @param string|RequestStack $language
+     * @param string $language
      */
     public function setLanguage($language)
     {
-        if($language instanceof RequestStack){
-            $language = $language->getCurrentRequest()->getLocale();
-        }
-
         $this->language = substr($language, 0, 2);
-    }
-
-    /**
-     * Get extra results if results too little from sugestions
-     *
-     * @param ChoiceResponse $response
-     * @return array
-     */
-    public function getRelaxationSuggestions(ChoiceResponse $response)
-    {
-        $suggestions = array();
-        if ($this->relaxationEnabled) {
-            /** @var \com\boxalino\p13n\api\thrift\Variant $variant */
-            foreach ($response->variants as $variant) {
-                if (is_object($variant->searchRelaxation)) {
-                    /** @var \com\boxalino\p13n\api\thrift\SearchResult $searchResult */
-                    foreach ($variant->searchRelaxation->suggestionsResults as $searchResult) {
-                        $suggestions[] = array(
-                            'text' => $searchResult->queryText,
-                            'count' => $searchResult->totalHitCount,
-                            'results' => $this->extractResultsFromHitGroups($searchResult->hitsGroups),
-                        );
-                    }
-                }
-            }
-        }
-        return $suggestions;
-    }
-
-    /**
-     * Get extra results if results too little from sub-phrases
-     *
-     * @param ChoiceResponse $response
-     * @return array
-     */
-    public function getRelaxationSubphraseResults(ChoiceResponse $response)
-    {
-        $subphrases = array();
-        if ($this->relaxationEnabled) {
-            /** @var \com\boxalino\p13n\api\thrift\Variant $variant */
-            foreach ($response->variants as $variant) {
-                if (is_object($variant->searchRelaxation)) {
-                    /** @var \com\boxalino\p13n\api\thrift\SearchResult $searchResult */
-                    foreach ($variant->searchRelaxation->subphrasesResults as $searchResult) {
-                        $subphrases[] = array(
-                            'text' => $searchResult->queryText,
-                            'count' => $searchResult->totalHitCount,
-                            'results' => $this->extractResultsFromHitGroups($searchResult->hitsGroups),
-                        );
-                    }
-                }
-            }
-        }
-        return $subphrases;
     }
 
 }
