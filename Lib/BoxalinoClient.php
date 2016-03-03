@@ -10,7 +10,6 @@
 
 namespace Ibrows\BoxalinoBundle\Lib;
 
-use com\boxalino\bxclient\v1\BxAutocompleteResponse;
 use com\boxalino\bxclient\v1\BxClient;
 
 /**
