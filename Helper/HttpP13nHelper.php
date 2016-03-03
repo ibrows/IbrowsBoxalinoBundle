@@ -284,11 +284,12 @@ class HttpP13nHelper
     public function getRelaxationSuggestionResults(BxChooseResponse $chooseResponse, $choiceId = null)
     {
         $suggestions = array();
-        if ($this->relaxationEnabled) {
-            $variant = $chooseResponse->getChoiceResponseVariant($choiceId);
-            if ($variant->searchRelaxation) {
-                $suggestions = $variant->searchRelaxation->suggestionsResults;
-            }
+        if (!$this->relaxationEnabled) {
+            return $suggestions;
+        }
+        $variant = $chooseResponse->getChoiceResponseVariant($choiceId);
+        if ($variant->searchRelaxation) {
+            $suggestions = $variant->searchRelaxation->suggestionsResults;
         }
         return $suggestions;
     }
@@ -303,10 +304,14 @@ class HttpP13nHelper
     public function getRelaxationSubphraseResults(BxChooseResponse $chooseResponse, $choiceId = null)
     {
         $subphrases = array();
-        if ($this->relaxationEnabled) {
-            $variant = $chooseResponse->getChoiceResponseVariant($choiceId);
+        if (!$this->relaxationEnabled) {
+            return $subphrases;
+        }
+        $variant = $chooseResponse->getChoiceResponseVariant($choiceId);
+        if ($variant->searchRelaxation && $variant->searchRelaxation->subphrasesResults) {
             $subphrases = $variant->searchRelaxation->subphrasesResults;
         }
+
         return $subphrases;
     }
 
@@ -427,13 +432,17 @@ class HttpP13nHelper
     /**
      * @param BxChooseResponse $chooseResponse
      * @param null $choiceId
-     * @return null
+     * @return \com\boxalino\p13n\api\thrift\SearchResult|null
      */
     public function extractResults(BxChooseResponse $chooseResponse, $choiceId = null)
     {
         $variant = $chooseResponse->getChoiceResponseVariant($choiceId);
 
         $results = $chooseResponse->getVariantSearchResult($variant, $this->relaxationEnabled);
+
+        if(is_null($results)){
+            $results = $variant->searchResult;
+        }
 
         return $results;
 
