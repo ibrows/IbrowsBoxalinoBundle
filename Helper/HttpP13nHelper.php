@@ -240,22 +240,12 @@ class HttpP13nHelper
     }
 
     /**
-     * @param BxAutocompleteResponse $response
+     * @param BxAutocompleteResponse $bxAutocompleteResponse
      * @return array
      */
-    public function getAutocompleteSuggestions(BxAutocompleteResponse $response)
+    public function getAutocompleteResults(BxAutocompleteResponse $bxAutocompleteResponse)
     {
-        $suggestions = array();
-        /** @var AutocompleteHit $hit */
-        foreach ($response->getResponse()->hits as $hit) {
-            $suggestions[] = array(
-                'text' => $hit->suggestion,
-                'html' => (strlen($hit->highlighted) ? $hit->highlighted : $hit->suggestion),
-                'searchResults' => $hit->searchResult->hits,
-                'hits' => $hit->searchResult->totalHitCount,
-            );
-        }
-        return $suggestions;
+        return $bxAutocompleteResponse->getResponse()->hits;
     }
 
     /**
