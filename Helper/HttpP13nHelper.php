@@ -188,10 +188,10 @@ class HttpP13nHelper
      */
     public function autocomplete(array $returnFields, $queryText, $hitCount = 5, $suggestionCount = 5, $filters = array())
     {
-        $bxRequest = $this->createAutocompleteRequest($returnFields, $queryText, $hitCount, $suggestionCount, $filters);
+        $bxAutocompleteRequest = $this->createAutocompleteRequest($returnFields, $queryText, $hitCount, $suggestionCount, $filters);
 
         //make the query to Boxalino server and get back the response for all requests
-        return $this->getAutocompleteResponses(array($bxRequest));
+        return $this->getAutocompleteResponse($bxAutocompleteRequest);
     }
 
     /**
@@ -215,6 +215,17 @@ class HttpP13nHelper
         }
 
         return $bxRequest;
+    }
+
+    /**
+     * @param BxAutocompleteRequest $bxAutocompleteRequest
+     * @return null
+     */
+    public function getAutocompleteResponse(BxAutocompleteRequest $bxAutocompleteRequest)
+    {
+        $this->getClient()->setAutocompleteRequest($bxAutocompleteRequest);
+
+        return $this->getClient()->getAutocompleteResponse();
     }
 
     /**
