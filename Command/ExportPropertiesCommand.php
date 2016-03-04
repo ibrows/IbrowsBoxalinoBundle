@@ -131,7 +131,8 @@ EOT;
         }
         $str = '';
 
-        foreach($changes['dbmind_fields'] as $field){
+
+        foreach($changes['dbmind_inputs'] as $field){
             $str .= <<<EOT
 
 Field:      $field[0]
