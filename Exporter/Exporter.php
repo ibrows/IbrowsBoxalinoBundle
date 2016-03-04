@@ -613,6 +613,7 @@ class Exporter
             'username' => $this->username,
             'password' => $this->password,
             'account'  => $this->account,
+            'owner'    => $this->owner,
             'dev'      => $this->devIndex ? 'true' : 'false',
             'delta'    => $this->delta ? 'true' : 'false',
             'data'     => $this->getCurlFile($this->getZipFile(), 'application/zip'),
