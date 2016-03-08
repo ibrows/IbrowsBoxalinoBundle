@@ -430,7 +430,12 @@ class Exporter
         if(class_exists('\Gedmo\Tool\Wrapper\AbstractWrapper')){
             $wrapped = \Gedmo\Tool\Wrapper\AbstractWrapper::wrap($entity, $field->getAdapter()->getObjectManager());
             $data = $field->getAdapter()->findTranslation($wrapped, $field->getLocale(), $field->getPropertyPath(), $field->getTranslatableClass(), $field->getClass());
-            return $data->getContent();
+            $className = $field->getTranslatableClass();
+
+            if($data instanceof $className){
+                return $data->getContent();
+            }
+
         }
 
         return $this->getColumnData($entity, $field->getPropertyPath());
