@@ -23,6 +23,10 @@ use Symfony\Component\HttpFoundation\RequestStack;
  */
 class HttpP13nHelper
 {
+
+    const FACET_TYPE_PRICE = 'price';
+    const FACET_TYPE_CATEGORY = 'category';
+    const FACET_TYPE_STRING = 'string';
     /**
      * @var BoxalinoClient
      */
@@ -333,17 +337,32 @@ class HttpP13nHelper
     /**
      * @param BxRequest $bxRequest
      * @param $facets
+     * @param null $label
+     * @param int $order
      */
-    protected function setFacets(BxRequest $bxRequest, $facets)
+    protected function setFacets(BxRequest $bxRequest, $facets, $label = null, $order = 0)
     {
         $bxFacets = new BxFacets();
 
         foreach ($facets as $facet) {
-            if (array_key_exists('values', $facet)) {
-                $bxFacets->addFacet($facet['fieldName'], $facet['values']);
-            } else {
-                $bxFacets->addFacet($facet['fieldName']);
+            $selectedValue = array_key_exists('values', $facet) ? $facet['values'] : null;
+            $type = array_key_exists('type', $facet) ? $facet['type'] : self::FACET_TYPE_STRING;
+
+            switch ($type){
+                case self::FACET_TYPE_PRICE:
+                    $bxFacets->addRangedFacet($facet['fieldName'], $selectedValue, $label, $order);
+                    break;
+                case self::FACET_TYPE_CATEGORY:
+                    if($selectedValue) {
+                        $bxFacets->addFacet('category_id', $selectedValue, 'hierarchical', '1');
+                    }
+                    $bxFacets->addFacet($facet['fieldName'], null, 'hierarchical', $order);
+                    break;
+                case self::FACET_TYPE_STRING:
+                    $bxFacets->addFacet($facet['fieldName'], $selectedValue, $type, $label, $order);
+                    break;
             }
+
         }
 
         $bxRequest->setFacets($bxFacets);
