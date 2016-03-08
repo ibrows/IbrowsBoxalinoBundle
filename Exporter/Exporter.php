@@ -393,6 +393,7 @@ class Exporter
             $row = array();
             /** @var FieldMap|TranslatableFieldMap $field */
             foreach ($entityMap->getFields() as $field) {
+
                 if ($field->hasJoinFields()) {
                     $joinEntity = $this->accessor->getValue($entity, $field->getPropertyPath());
 
@@ -555,11 +556,10 @@ class Exporter
     }
 
     /**
-     * @param            $row
-     * @param bool|false $header
+     * @param $row
      * @return int|void
      */
-    protected function addRowToFile($row, $header = false)
+    protected function addRowToFile($row)
     {
         return fputcsv($this->fileHandle, $row, self::XML_DELIMITER, self::XML_ENCLOSURE);
     }
@@ -571,6 +571,9 @@ class Exporter
      */
     public function getColumnData($entity, $propertyPath)
     {
+        if(!$entity){
+            return null;
+        }
         return $this->accessor->getValue($entity, $propertyPath);
     }
 
