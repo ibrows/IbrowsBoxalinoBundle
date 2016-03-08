@@ -11,6 +11,7 @@ use com\boxalino\bxclient\v1\BxRequest;
 use com\boxalino\bxclient\v1\BxSearchRequest;
 use com\boxalino\p13n\api\thrift\AutocompleteHit;
 use com\boxalino\p13n\api\thrift\AutocompleteResponse;
+use com\boxalino\p13n\api\thrift\SearchResult;
 use Ibrows\BoxalinoBundle\Lib\BoxalinoClient;
 use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\HttpFoundation\Request;
@@ -25,6 +26,7 @@ class HttpP13nHelper
 {
 
     const FACET_TYPE_PRICE = 'price';
+    const FACET_TYPE_RANGE = 'range';
     const FACET_TYPE_CATEGORY = 'category';
     const FACET_TYPE_STRING = 'string';
     /**
@@ -167,7 +169,7 @@ class HttpP13nHelper
         $bxRequest->setOrFilters($orFilters);
         $this->setFacets($bxRequest, $facets);
         foreach ($sortFields as $sortField) {
-            $reverse = array_key_exists('reverse', $sortField) ? true : false;
+            $reverse = array_key_exists('reverse', $sortField) ? $sortField['reverse'] : false;
             $bxRequest->addSortField($sortField['fieldName'], $reverse);
         }
 
@@ -350,13 +352,13 @@ class HttpP13nHelper
 
             switch ($type){
                 case self::FACET_TYPE_PRICE:
+                    $bxFacets->addPriceRangeFacet($selectedValue, $order, $label, $facet['fieldName']);
+                    break;
+                case self::FACET_TYPE_RANGE:
                     $bxFacets->addRangedFacet($facet['fieldName'], $selectedValue, $label, $order);
                     break;
                 case self::FACET_TYPE_CATEGORY:
-                    if($selectedValue) {
-                        $bxFacets->addFacet('category_id', $selectedValue, 'hierarchical', '1');
-                    }
-                    $bxFacets->addFacet($facet['fieldName'], null, 'hierarchical', $order);
+                    $bxFacets->addCategoryFacet($selectedValue, $order);
                     break;
                 case self::FACET_TYPE_STRING:
                     $bxFacets->addFacet($facet['fieldName'], $selectedValue, $type, $label, $order);
@@ -391,9 +393,10 @@ class HttpP13nHelper
     protected function getFacetValues(BxFacets $facets, $fieldName)
     {
         $facetArray = array();
+
         //loop on the search response hit ids and print them
-        foreach ($facets->getFacetValues($fieldName) as $fieldValue) {
-            $facetArray[] = array(
+        foreach ($facets->getFacetValues($fieldName) as $key => $fieldValue) {
+            $facetArray[$key] = array(
                 'parameterValue' => $facets->getFacetValueParameterValue($fieldName, $fieldValue),
                 'stringValue' => $facets->getFacetValueLabel($fieldName, $fieldValue),
                 'selected' => $facets->isFacetValueSelected($fieldName, $fieldValue),
@@ -466,6 +469,47 @@ class HttpP13nHelper
 
         return $results;
 
+    }
+
+    /**
+     * @param $hits
+     * @param array $results
+     * @return array
+     */
+    public function extractResultsFromHits($hits, &$results = array())
+    {
+        /** @var \com\boxalino\p13n\api\thrift\Hit $item */
+        foreach ($hits as $item) {
+            $result = array();
+            foreach ($item->values as $key => $value) {
+                if (is_array($value) && count($value) == 1) {
+                    $result[$key] = array_shift($value);
+                } else {
+                    $result[$key] = $value;
+                }
+            }
+            $results[] = $result;
+        }
+
+        return $results;
+    }
+
+    /**
+     * @param $hitsGroups
+     * @param array $results
+     * @return array
+     */
+    public function extractResultsFromHitGroups($hitsGroups, &$results = array())
+    {
+        if (!is_array($hitsGroups)) {
+            return $results;
+        }
+
+        /** @var \com\boxalino\p13n\api\thrift\HitsGroup $group */
+        foreach ($hitsGroups as $group) {
+            $this->extractResultsFromHits($group->hits, $results);
+        }
+        return $results;
     }
 
     /**
