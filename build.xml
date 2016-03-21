@@ -13,7 +13,7 @@
     <property name="phpmd" value="/usr/local/php/bin/phpmd"/>
     <property name="phpcs" value="/usr/local/php/bin/phpcs"/>
     <property name="phpcpd" value="/usr/local/php/bin/phpcpd"/>
-    <property name="phpunit" value="/usr/local/php/bin/phpunit"/>
+    <property name="phpunit" value="vendor/bin/phpunit"/>
     <property name="composer" value="/usr/local/php/bin/composer"/>
     <property environment="BUILD_ENV"/>
 

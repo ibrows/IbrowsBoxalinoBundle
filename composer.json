@@ -21,7 +21,7 @@
   },
   "require-dev": {
     "doctrine/doctrine-fixtures-bundle": "v2.2.0",
-    "phpunit/phpunit": "^5.2"
+    "phpunit/phpunit": "^4.0"
   },
   "repositories": [
     {
