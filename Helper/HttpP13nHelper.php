@@ -268,6 +268,24 @@ class HttpP13nHelper
     public function findRawRecommendations(array $returnFields, $id, $offset = 0, $hitCount = 5,
                                            $fieldName = 'id', $contexts = array('search'))
     {
+        $this->createRawRecommendationsRequests($returnFields, $id, $offset, $hitCount, $fieldName, $contexts);
+
+        return $this->getResponse();
+    }
+
+
+    /**
+     * @param array $returnFields
+     * @param $id
+     * @param int $offset
+     * @param int $hitCount
+     * @param string $fieldName
+     * @param array $contexts
+     * @return BoxalinoClient
+     */
+    public function createRawRecommendationsRequests(array $returnFields, $id, $offset = 0, $hitCount = 5,
+                                           $fieldName = 'id', $contexts = array('search'))
+    {
         foreach ($contexts as $context) {
             $bxRequestSimilar = new BxRecommendationRequest($this->language, $context, $hitCount);
             $bxRequestSimilar->setOffset($offset);
@@ -278,7 +296,7 @@ class HttpP13nHelper
             $this->getClient()->addRequest($bxRequestSimilar);
         }
 
-        return $this->getResponse();
+        return $this->getClient();
     }
 
     /**
