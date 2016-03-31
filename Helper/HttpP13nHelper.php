@@ -348,7 +348,13 @@ class HttpP13nHelper
     protected function addFilter(BxRequest $bxRequest, $filter, $negative = false)
     {
         if (!$filter instanceof BxFilter) {
-            $filter = new BxFilter($filter['fieldName'], $filter['values'], $negative);
+            $selectedValue = array_key_exists('values', $filter) ? $filter['values'] : array();
+
+            if(!is_array($selectedValue)){
+                $selectedValue = array($selectedValue);
+            }
+
+            $filter = new BxFilter($filter['fieldName'], $selectedValue, $negative);
         }
 
         $bxRequest->addFilter($filter);
