@@ -192,9 +192,14 @@ class HttpP13nHelper
      * @param array $filters
      * @return null
      */
-    public function autocomplete(array $returnFields, $queryText, $hitCount = 5, $suggestionCount = 5, $filters = array())
+    public function autocomplete(array $returnFields, $queryText, $hitCount = 5, $suggestionCount = 5, $filters =
+    array(), $properties = array())
     {
         $bxAutocompleteRequest = $this->createAutocompleteRequest($returnFields, $queryText, $hitCount, $suggestionCount, $filters);
+
+        foreach ($properties as $property){
+            $bxAutocompleteRequest->addPropertyQuery($property, $hitCount, false);
+        }
 
         //make the query to Boxalino server and get back the response for all requests
         return $this->getAutocompleteResponse($bxAutocompleteRequest);
