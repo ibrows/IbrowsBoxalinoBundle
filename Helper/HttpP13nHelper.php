@@ -268,12 +268,13 @@ class HttpP13nHelper
      * @param int $hitCount
      * @param string $fieldName
      * @param array $contexts
+     * @param array $filters
      * @return \com\boxalino\bxclient\v1\BxChooseResponse
      */
     public function findRawRecommendations(array $returnFields, $id, $offset = 0, $hitCount = 5,
-                                           $fieldName = 'id', $contexts = array('search'))
+                                           $fieldName = 'id', $contexts = array('search'), $filters = array())
     {
-        $this->createRawRecommendationsRequests($returnFields, $id, $offset, $hitCount, $fieldName, $contexts);
+        $this->createRawRecommendationsRequests($returnFields, $id, $offset, $hitCount, $fieldName, $contexts, $filters);
 
         return $this->getResponse();
     }
@@ -286,10 +287,11 @@ class HttpP13nHelper
      * @param int $hitCount
      * @param string $fieldName
      * @param array $contexts
+     * @param array $filters
      * @return BoxalinoClient
      */
     public function createRawRecommendationsRequests(array $returnFields, $id, $offset = 0, $hitCount = 5,
-                                           $fieldName = 'id', $contexts = array('search'))
+                                           $fieldName = 'id', $contexts = array('search'), $filters = array())
     {
         foreach ($contexts as $context) {
             $bxRequestSimilar = new BxRecommendationRequest($this->language, $context, $hitCount);
@@ -297,6 +299,10 @@ class HttpP13nHelper
             $bxRequestSimilar->setReturnFields($returnFields);
             //indicate the product the user is looking at now (reference of what the recommendations need to be similar to)
             $bxRequestSimilar->setProductContext($fieldName, $id);
+
+            foreach ($filters as $filter) {
+                $this->addFilter($bxRequestSimilar, $filter);
+            }
             //add the request
             $this->getClient()->addRequest($bxRequestSimilar);
         }
