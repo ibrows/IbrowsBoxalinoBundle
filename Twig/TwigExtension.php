@@ -33,23 +33,26 @@ class TwigExtension extends \Twig_Extension
             new \Twig_SimpleFunction(
                 'ibrows_boxalino_tracker',
                 array($this, 'getBoxalinoTracker'),
-                array('is_safe' => array('html'))),
+                array('is_safe' => array('html'), 'needs_environment' => true)),
             new \Twig_SimpleFunction(
                 'ibrows_boxalino_search_tracker',
                 array($this, 'getBoxalinoSearchTracker'),
-                array('is_safe' => array('html')))
+                array('is_safe' => array('html'),'needs_environment' => true))
         );
     }
 
     /**
+     * @param \Twig_Environment $env
      * @param null $action
      * @param null $value
      * @param array $args
      * @return string
      */
-    public function getBoxalinoTracker($action = null, $value = null, array $args = array())
+    public function getBoxalinoTracker(\Twig_Environment $env, $action = null, $value = null, array $args = array())
     {
         $push = '';
+
+        $value = $this->escape($env, $value);
 
         if (!is_null($action) && !is_null($value)) {
             $push = $this->createPush($action, $value, $args);
@@ -71,15 +74,27 @@ SCRIPT;
     }
 
     /**
+     * @param \Twig_Environment $env
      * @param $searchTermKey
      * @param null $filterKey
      * @return string
+     * @throws \Twig_Error_Runtime
      */
-    public function getBoxalinoSearchTracker($searchTermKey, $filterKey = null){
+    public function getBoxalinoSearchTracker(\Twig_Environment $env, $searchTermKey, $filterKey = null){
 
-        $logTerm = addslashes(trim(stripslashes(html_entity_decode($this->request->get($searchTermKey)))));
         $args = $filterKey ? $this->request->get($filterKey, array()): array();
-        return $this->getBoxalinoTracker('trackSearch',$logTerm, $args);
+        return $this->getBoxalinoTracker($env, 'trackSearch',$this->request->get($searchTermKey), $args);
+    }
+
+    /**
+     * @param $env
+     * @param $term
+     * @return string
+     * @throws \Twig_Error_Runtime
+     */
+    public function escape($env, $term)
+    {
+        return twig_escape_filter($env,strip_tags($term), 'html');
     }
 
     /**
