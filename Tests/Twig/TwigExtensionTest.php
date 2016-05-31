@@ -22,9 +22,15 @@ class TwigExtensionTest extends \PHPUnit_Framework_TestCase
      */
     protected static $twigExtension;
 
+    /**
+     * @var
+     */
+    protected static $twigEnvironment;
+
     public static function setUpBeforeClass()
     {
         self::$twigExtension = new TwigExtension();
+        self::$twigEnvironment = new \Twig_Environment();
     }
 
     public function testSetAccount()
@@ -53,7 +59,8 @@ class TwigExtensionTest extends \PHPUnit_Framework_TestCase
 
     public function testBoxalinoTracker()
     {
-        $trackerCode = self::$twigExtension->getBoxalinoTracker('viewProduct', '2', array('filter' => 1));
+        $trackerCode = self::$twigExtension->getBoxalinoTracker(self::$twigEnvironment, 'viewProduct', '2', array
+        ('filter' => 1));
 
         $this->assertSame(150, strpos($trackerCode, '_bxq.push([\'trackPageView\']);'), 'Tracker code created
         successfully');
@@ -64,7 +71,7 @@ class TwigExtensionTest extends \PHPUnit_Framework_TestCase
 
     public function testBoxalinoSearchTracker()
     {
-        $trackerCode = self::$twigExtension->getBoxalinoSearchTracker('search');
+        $trackerCode = self::$twigExtension->getBoxalinoSearchTracker(self::$twigEnvironment, 'search');
 
         $this->assertSame(212, strpos($trackerCode, '_bxq.push([\'trackSearch\', \'searched for term\', []]);'),
             'Search tracker code correctly created');
