@@ -18,12 +18,6 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 class ExportPropertiesCommand extends ContainerAwareCommand
 {
-    const SYNC_FULL = 'full';
-    const SYNC_DELTA = 'delta';
-    const SYNC_PARTIAL = 'partial';
-    const SYNC_PROPERTIES = 'properties';
-
-    protected $syncStrategies = array('full', 'delta', 'partial', 'properties');
 
     /**
      * @var Exporter
