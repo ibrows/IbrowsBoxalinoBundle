@@ -12,7 +12,7 @@ csv files and the attributes to a flat data structure. For more about properties
 
 The command to export it is as follows:
 
-```
+``` bash
 app/console ibrows:boxalino:export-properties --publish --properties-xml=/app/config/properties.xml
 ```
 
@@ -34,14 +34,14 @@ The "delta" export will only update or add new entries to the index.
 
 **You can not delete entries, you must do a full export**
 
-```
+``` bash
 app/console ibrows:boxalino:export-entities --sync=full --push-live
 ```
 
 -- or --  
 
 
-```
+``` bash
 app/console ibrows:boxalino:export-entities --sync=full --d
 ```
 
