@@ -39,7 +39,7 @@ Configuration
 ---------------------
 
 ### Setup credentials, paths and entities
-    ``` yaml
+``` yaml
     ibrows_boxalino:
         db_driver: "orm" #Default value
         
@@ -90,7 +90,7 @@ Configuration
                     id: id
                     parent: parent
                     name: name
-    ```
+```
 More information in the [index][1]
 
 [1]: https://ibrows.codebasehq.com/projects/ibrowsch/repositories/ibrowsboxalinobundle/blob/master/Resources/doc/index.md

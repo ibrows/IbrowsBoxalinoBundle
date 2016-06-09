@@ -17,7 +17,7 @@ For a full explanation of the properties.xml file, please check the [pdf documen
 The path to this file should be configured under the settings for the ibrows_boxalino bundle. A good place to put it would 
 be in the app/config folder, or wherever else you keep general site configuration.
 
-```
+``` yaml
 ibrows_boxalino:
    ....
     export:
