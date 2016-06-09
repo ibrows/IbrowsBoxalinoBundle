@@ -39,7 +39,7 @@ Configuration
 ---------------------
 
 ### Setup credentials, paths and entities
-    ``` yml
+    ``` yaml
     ibrows_boxalino:
         db_driver: "orm" #Default value
         
