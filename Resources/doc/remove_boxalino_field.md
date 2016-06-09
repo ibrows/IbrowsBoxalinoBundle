@@ -10,7 +10,9 @@ and confirm.
   
 **Make sure the field is also removed in the XML**    
 
-![Semantic data fields](img/remove_boxalino_field.png)  
+![Semantic data fields][1]  
+
+[1]: https://ibrows.codebasehq.com/projects/ibrowsch/repositories/ibrowsboxalinobundle/raw/master/Resources/doc/img/remove_boxalino_field.png
 
    
 

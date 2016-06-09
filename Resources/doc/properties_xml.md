@@ -11,7 +11,7 @@ The Data Intelligence XML Data profile file (properties.xml) provides the requir
     Engine
     
 
-For a full explanation of the properties.xml file, please check the [pdf documentation from boxalino](files/XML_data_property_file_definition.pdf)
+For a full explanation of the properties.xml file, please check the [pdf documentation from boxalino][1]
     
         
 The path to this file should be configured under the settings for the ibrows_boxalino bundle. A good place to put it would 
@@ -29,6 +29,9 @@ It is also possible to generate the configuration, either through php, defining 
 from your entity csv export files. More information about these possibilities can be found in the ychadwick/boxalino-client-SDK-php
 in the folder examples, in the files starting with "backend_data_....php"
 
-For information regarding sending the properties.xml to boxalino please read [the available symfony style commands](commands.md)
+For information regarding sending the properties.xml to boxalino please read [the available symfony style commands][2]
+
+[1]: https://ibrows.codebasehq.com/projects/ibrowsch/repositories/ibrowsboxalinobundle/raw/master/Resources/doc/files/XML_data_property_file_definition.pdf
+[2]: https://ibrows.codebasehq.com/projects/ibrowsch/repositories/ibrowsboxalinobundle/blob/master/Resources/doc/commands.md
 
 

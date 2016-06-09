@@ -9,5 +9,7 @@ Once the indexing is complete, navigate to actions > files, then click to tab "o
 click the "publish" button, the last full index will be published. It is only possible to publish full exports and not
 delta exports.
   
-![publish output](img/autocomplete_boxalino_4.png)      
+![publish output][1]      
+
+[1]: https://ibrows.codebasehq.com/projects/ibrowsch/repositories/ibrowsboxalinobundle/raw/master/Resources/doc/img/autocomplete_boxalino_4.png
    

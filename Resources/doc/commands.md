@@ -8,7 +8,7 @@ Export properties
 -----------------
 
 Before you can use any of the Boxalino search capabilities, you need to export the properties.xml file which maps the 
-csv files and the attributes to a flat data structure. For more about properties see [properties.xml](properties_xml.md)
+csv files and the attributes to a flat data structure. For more about properties see [properties.xml][1]
 
 The command to export it is as follows:
 
@@ -50,7 +50,13 @@ app/console ibrows:boxalino:export-entities --sync=full --d
 --dry-run (-d): Will **only** generate the csv files and nothing more, event if the push-live flag is used. good for testing
 
 --push-live: This will ensure that the data is pushed to the live index (published), without this the data is pushed but 
-stays in the dev till it is manually published ([see manual publishing](manual_publish.md))
+stays in the dev till it is manually published ([see manual publishing][2]
 
-For more information about entity export configuration see [entitiy configuration](entitiy_configuration.md)
+For more information about entity export configuration see [entitiy configuration][3]
+
+
+
+[1]: https://ibrows.codebasehq.com/projects/ibrowsch/repositories/ibrowsboxalinobundle/blob/master/Resources/doc/properties_xml.md
+[2]: https://ibrows.codebasehq.com/projects/ibrowsch/repositories/ibrowsboxalinobundle/blob/master/Resources/doc/manual_publish.md
+[3]: https://ibrows.codebasehq.com/projects/ibrowsch/repositories/ibrowsboxalinobundle/blob/master/Resources/doc/entity_configuration.md
 

@@ -90,5 +90,7 @@ Configuration
                     parent: parent
                     name: name
 
-## More information in the [index](Resources/doc/index.md)
+## More information in the [index][1]
+
+[1]: https://ibrows.codebasehq.com/projects/ibrowsch/repositories/ibrowsboxalinobundle/blob/master/Resources/doc/index.md
     
