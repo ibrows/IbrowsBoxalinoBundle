@@ -5,7 +5,7 @@ The IbrowsBoxalinoBundle allows you to export your entities and chosen entity fi
 search and autocomplete functions offered by boxalino, and a twig extension of the Javascrpt tracking.
 
 
-Install & setup the bundle
+Install and setup the bundle
 --------------------------
 
 1.  Fetch the source code
@@ -90,7 +90,7 @@ Configuration
                     parent: parent
                     name: name
 
-## More information in the [index][1]
+More information in the [index][1]
 
 [1]: https://ibrows.codebasehq.com/projects/ibrowsch/repositories/ibrowsboxalinobundle/blob/master/Resources/doc/index.md
     
