@@ -3,16 +3,22 @@
 <container xmlns="http://symfony.com/schema/dic/services"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
+    <parameters>
+        <parameter key="ibrows_boxalino.client.http_p13n_helper.class">Ibrows\BoxalinoBundle\Helper\HttpP13nHelper</parameter>
+        <parameter key="ibrows_boxalino.exporter.exporter.class">Ibrows\BoxalinoBundle\Exporter\Exporter</parameter>
+        <parameter key="ibrows_boxalino.twig.twig_extension.class">Ibrows\BoxalinoBundle\Twig\TwigExtension</parameter>
+        <parameter key="ibrows_boxalino.event_listener.response_event_listener.class">Ibrows\BoxalinoBundle\EventListener\ResponseEventListener</parameter>
+    </parameters>
 
     <services>
-        <service class="Ibrows\BoxalinoBundle\Helper\HttpP13nHelper" id="ibrows_boxalino.client.http_p13n_helper">
+        <service class="%ibrows_boxalino.client.http_p13n_helper.class%" id="ibrows_boxalino.client.http_p13n_helper">
             <argument type="service" id="request_stack" />
             <argument>%ibrows_boxalino.access.account%</argument>
             <argument>%ibrows_boxalino.access.username%</argument>
             <argument>%ibrows_boxalino.access.password%</argument>
         </service>
 
-        <service class="Ibrows\BoxalinoBundle\Exporter\Exporter" id="ibrows_boxalino.exporter.exporter">
+        <service class="%ibrows_boxalino.exporter.exporter.class%" id="ibrows_boxalino.exporter.exporter">
             <argument id="ibrows_boxalino.client.http_p13n_helper" type="service"/>
             <argument>%ibrows_boxalino.entities%</argument>
             <argument>%ibrows_boxalino.export.directory%</argument>
@@ -20,7 +26,7 @@
             <argument>%ibrows_boxalino.debug_mode%</argument>
         </service>
 
-        <service class="Ibrows\BoxalinoBundle\Twig\TwigExtension" id="ibrows_boxalino.twig.twig_extension">
+        <service class="%ibrows_boxalino.twig.twig_extension.class%" id="ibrows_boxalino.twig.twig_extension">
             <call method="setAccount">
                 <argument>%ibrows_boxalino.access.account%</argument>
             </call>
@@ -30,7 +36,7 @@
             <tag name="twig.extension"/>
         </service>
 
-        <service class="Ibrows\BoxalinoBundle\EventListener\ResponseEventListener" id="ibrows_boxalino.event_listener.response_event_listener">
+        <service class="%ibrows_boxalino.event_listener.response_event_listener.class%" id="ibrows_boxalino.event_listener.response_event_listener">
             <call method="setHttpP13nHelper">
                 <argument id="ibrows_boxalino.client.http_p13n_helper" type="service"/>
             </call>

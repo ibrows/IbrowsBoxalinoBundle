@@ -4,18 +4,16 @@ namespace Ibrows\BoxalinoBundle\Twig;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 
+
 /**
- * This file is part of the boxalinosandbox  package.
- *
- * (c) net working AG <info@networking.ch>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * Class TwigExtension
+ * @package Ibrows\BoxalinoBundle\Twig
+ * @author Yorkie Chadwick <y.chadwick@networking.ch>
  */
 class TwigExtension extends \Twig_Extension
 {
     /**
-     * @var
+     * @var string
      */
     private $account;
 
@@ -37,53 +35,213 @@ class TwigExtension extends \Twig_Extension
             new \Twig_SimpleFunction(
                 'ibrows_boxalino_search_tracker',
                 array($this, 'getBoxalinoSearchTracker'),
-                array('is_safe' => array('html'),'needs_environment' => true))
+                array('is_safe' => array('html'), 'needs_environment' => true)),
+            new \Twig_SimpleFunction(
+                'ibrows_boxalino_product_view_tracker',
+                array($this, 'getBoxalinoProductViewTracker'),
+                array('is_safe' => array('html'), 'needs_environment' => true)),
+            new \Twig_SimpleFunction(
+                'ibrows_boxalino_get_promise',
+                array($this, 'getPromise'),
+                array('is_safe' => array('html')))
         );
     }
 
     /**
      * @param \Twig_Environment $env
-     * @param null $action
-     * @param null $value
-     * @param array $args
+     * @param array $trackActions
      * @return string
      */
-    public function getBoxalinoTracker(\Twig_Environment $env, $action = null, $value = null, array $args = array())
+    public function getBoxalinoTracker(\Twig_Environment $env, array $trackActions = array())
     {
-        $push = '';
+        $promises = array();
 
-        $value = $this->escape($env, $value);
-
-        if (!is_null($action) && !is_null($value)) {
-            $push = $this->createPush($action, $value, $args);
+        foreach ($trackActions as $promise => $params) {
+            $promises[] = $this->getPromise($promise, $params);
         }
-        return <<<SCRIPT
-            <script type="text/javascript">
-                var _bxq = _bxq || [];
-                _bxq.push(['setAccount', '$this->account']);
-                _bxq.push(['trackPageView']);
-                $push
-                (function(){
-                    var s = document.createElement('script');
-                    s.async = 1;
-                    s.src = '//cdn.bx-cloud.com/frontend/rc/js/ba.min.js';
-                    document.getElementsByTagName('head')[0].appendChild(s);
-                 })();
-            </script>
-SCRIPT;
+
+        return $this->createTrackingScript($env, $promises);
     }
 
     /**
      * @param \Twig_Environment $env
      * @param $searchTermKey
-     * @param null $filterKey
+     * @param null $filterkeys
+     * @param bool $standalone
      * @return string
-     * @throws \Twig_Error_Runtime
      */
-    public function getBoxalinoSearchTracker(\Twig_Environment $env, $searchTermKey, $filterKey = null){
+    public function getBoxalinoSearchTracker(\Twig_Environment $env, $searchTermKey, $filterkeys = null, $standalone = false)
+    {
+        $trackActions = array();
+        $params = array();
 
-        $args = $filterKey ? $this->request->get($filterKey, array()): array();
-        return $this->getBoxalinoTracker($env, 'trackSearch',$this->request->get($searchTermKey), $args);
+        if(!is_array($filterkeys)){
+            $filterkeys = array($filterkeys);
+        }
+        $filters = $this->getSearchFilterValues($filterkeys);
+        $searchTerm = $this->escape($env, $this->request->get($searchTermKey));
+
+        if ($searchTerm) {
+
+            $params = array(
+                'searchTerm' => $searchTerm,
+                'filters' => $filters,
+            );
+
+            $trackActions = array(
+                'trackSearch' => $params
+            );
+        }
+
+        if($standalone === true){
+            return $this->getPromise('trackSearch', $params);
+        }
+
+        return $this->getBoxalinoTracker($env, $trackActions);
+
+    }
+
+    /**
+     * @param array $filterKeys
+     * @return array
+     */
+    protected function getSearchFilterValues(array $filterKeys){
+
+        $filters = array();
+        foreach ($filterKeys as  $filterKey) {
+
+            $filterValue = $this->request->get($filterKey, null);
+
+            if(!$filterValue){
+                continue;
+            }
+
+            if($filterKey === 'categories'){
+                $filterKey = 'hrc_'.$filterKey;
+            }
+
+            $filterName = str_replace('products_', '', $filterKey);
+
+            $filters['filter_'.$filterName] = $filterValue;
+        }
+
+        return $filters;
+    }
+
+    /**
+     * @param \Twig_Environment $env
+     * @param $product
+     * @param bool $standalone
+     * @return mixed|string
+     */
+    public function getBoxalinoProductViewTracker(\Twig_Environment $env, $product, $standalone = false)
+    {
+        $trackActions = array();
+        $params = array();
+
+        if($product){
+            $params = array(
+                'product' => $product
+            );
+
+            $trackActions = array(
+                'trackProductView' => $params
+            );
+        }
+
+        if($standalone == true){
+            return $this->getPromise('trackProductView', $params);
+        }
+
+        return $this->getBoxalinoTracker($env, $trackActions);
+    }
+
+    /**
+     * @param $promise
+     * @param array $params
+     * @return mixed
+     */
+    public function getPromise($promise, array $params)
+    {
+        $method = $this->getPromiseName($promise);
+
+        if(!method_exists($this, $method)){
+            return '';
+        }
+
+        return $this->$method($params);
+    }
+
+    /**
+     * @param \Twig_Environment $env
+     * @param null $promises
+     * @return string
+     */
+    protected function createTrackingScript(\Twig_Environment $env, $promises = null)
+    {
+
+        $params = array(
+            'promises' => $promises,
+            'account' => $this->account
+        );
+
+        return $env->render('IbrowsBoxalinoBundle::script.html.twig', $params);
+    }
+
+    /**
+     * @param array $params
+     * @return string
+     */
+    protected function trackSearch(array $params)
+    {
+        $script = "_bxq.push(['trackSearch', '" . $params['searchTerm'] . "', " . json_encode($params['filters']) . "])";
+        return $script;
+    }
+
+    /**
+     * @param array $params
+     * @return string
+     */
+    protected function trackProductView(array $params)
+    {
+        $script = "_bxq.push(['trackProductView', '" . $params['product'] . "'])";
+        return $script;
+    }
+
+    /**
+     * @param array $params
+     * @return string
+     */
+    protected function trackAddToBasket(array $params)
+    {
+        $product = $params['product'];
+        $count = $params['count'];
+        $price = $params['price'];
+        $currency = $params['currency'];
+
+        $script = "_bxq.push(['trackAddToBasket', '" . $product . "', " . $count . ", " . $price . ", '" . $currency . "']);";
+        return $script;
+    }
+
+    /**
+     * @param array $params
+     * @return string
+     */
+    protected function trackCategoryView(array $params)
+    {
+
+        $script = "_bxq.push(['trackCategoryView', '" . $params['categoryId'] . "'])";
+        return $script;
+    }
+
+    /**
+     * @param array $params
+     * @return string
+     */
+    protected function trackLogin(array $params)
+    {
+        $script = "_bxq.push(['trackLogin', '" . $params['customerId'] . "'])";
+        return $script;
     }
 
     /**
@@ -92,43 +250,22 @@ SCRIPT;
      * @return string
      * @throws \Twig_Error_Runtime
      */
-    public function escape($env, $term)
+    protected function escape($env, $term)
     {
-        return twig_escape_filter($env,strip_tags($term), 'html');
+        return twig_escape_filter($env, strip_tags($term), 'html');
     }
 
     /**
-     * @param $action
-     * @param $value
-     * @param array $args
+     * @param $promise
      * @return string
      */
-    private function createPush($action, $value, $args = array())
+    public function getPromiseName($promise)
     {
-        $action = $this->getAction($action);
 
-        $filters = json_encode($args);
-        $script = <<<SCRIPT
-                _bxq.push(['$action', '$value', $filters]);
-SCRIPT;
-        return $script;
-    }
-
-    /**
-     * @param $action
-     * @return string
-     */
-    public function getAction($action){
-
-        if(substr($action, 0, 5) !== 'track'){
-            $action = 'track_'.$action;
+        if (substr($promise, 0, 5) !== 'track') {
+            $promise = 'track_' . $promise;
         }
-        return self::camelize($action);
-    }
-
-    public static function classify($word)
-    {
-        return str_replace(" ", "", ucwords(strtr($word, "_-", "  ")));
+        return self::camelize($promise);
     }
 
     /**
@@ -144,13 +281,12 @@ SCRIPT;
     }
 
     /**
-     * @param $account
-     * @return $this
+     * @param $word
+     * @return mixed
      */
-    public function setAccount($account)
+    public static function classify($word)
     {
-        $this->account = $account;
-        return $this;
+        return str_replace(" ", "", ucwords(strtr($word, "_-", "  ")));
     }
 
     /**
@@ -162,12 +298,12 @@ SCRIPT;
     }
 
     /**
-     * @param RequestStack $requestStack
+     * @param $account
      * @return $this
      */
-    public function setRequest(RequestStack $requestStack)
+    public function setAccount($account)
     {
-        $this->request = $requestStack->getCurrentRequest();
+        $this->account = $account;
         return $this;
     }
 
@@ -177,6 +313,16 @@ SCRIPT;
     public function getRequest()
     {
         return $this->request;
+    }
+
+    /**
+     * @param RequestStack $requestStack
+     * @return $this
+     */
+    public function setRequest(RequestStack $requestStack)
+    {
+        $this->request = $requestStack->getCurrentRequest();
+        return $this;
     }
 
     /**
