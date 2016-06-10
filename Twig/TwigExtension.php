@@ -185,7 +185,7 @@ class TwigExtension extends \Twig_Extension
             'account' => $this->account
         );
 
-        return $env->render('IbrowsBoxalinoBundle::script.html.twig', $params);
+        return $env->render('@IbrowsBoxalino/script.html.twig', $params);
     }
 
     /**

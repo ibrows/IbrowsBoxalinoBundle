@@ -9,7 +9,7 @@
     var _bxq = _bxq || [];
 
     _bxq.push(['setAccount', '{{ account }}']);
-    _bxq.push(['trackPageView', '{{ app.request.requestUri }}']);
+    _bxq.push(['trackPageView', '{{ app.request.requestUri|default(null) }}']);
 
     {% for promise in promises %}
     {{ promise|raw }};

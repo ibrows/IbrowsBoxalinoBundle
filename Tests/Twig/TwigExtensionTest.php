@@ -31,6 +31,10 @@ class TwigExtensionTest extends \PHPUnit_Framework_TestCase
     {
         self::$twigExtension = new TwigExtension();
         self::$twigEnvironment = new \Twig_Environment();
+
+        $twigLoader = new \Twig_Loader_Filesystem();
+        $twigLoader->addPath(__DIR__.'/../../Resources/views', 'IbrowsBoxalino');
+        self::$twigEnvironment->setLoader($twigLoader);
     }
 
     public function testSetAccount()
@@ -60,24 +64,22 @@ class TwigExtensionTest extends \PHPUnit_Framework_TestCase
     public function testBoxalinoTracker()
     {
         $trackActions = array(
-            'viewProduct' => array(
+            'trackProductView   ' => array(
                 'product' => 2
             )
         );
 
         $trackerCode = self::$twigExtension->getBoxalinoTracker(self::$twigEnvironment, $trackActions);
 
-        $this->assertSame(150, strpos($trackerCode, '_bxq.push([\'trackPageView\']);'), 'Tracker code created
-        successfully');
-        $this->assertSame(224, strpos($trackerCode, 'trackViewProduct'), 'Action added Correctly');
+        $this->assertSame(330, strpos($trackerCode, '_bxq.push([\'trackPageView\', \'\']);'), 'Tracker code created successfully');
+        $this->assertSame(385, strpos($trackerCode, 'trackProductView'), 'Action added Correctly');
 
     }
 
     public function testBoxalinoSearchTracker()
     {
         $trackerCode = self::$twigExtension->getBoxalinoSearchTracker(self::$twigEnvironment, 'search');
-
-        $this->assertSame(212, strpos($trackerCode, '_bxq.push([\'trackSearch\', \'searched for term\', []]);'),
+        $this->assertSame(373, strpos($trackerCode, '_bxq.push([\'trackSearch\', \'searched for term\', []]);'),
             'Search tracker code correctly created');
 
     }
@@ -103,7 +105,7 @@ class TwigExtensionTest extends \PHPUnit_Framework_TestCase
     {
         $functions = self::$twigExtension->getFunctions();
 
-        $this->assertSame(2, count($functions), 'Two twig functions available');
+        $this->assertSame(4, count($functions), '4 twig functions available');
     }
 
     public function testGetName()
