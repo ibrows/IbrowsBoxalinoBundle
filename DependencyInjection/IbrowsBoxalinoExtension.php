@@ -11,10 +11,11 @@ use Symfony\Component\DependencyInjection\Loader;
 use Symfony\Component\HttpKernel\DependencyInjection\Extension;
 use Symfony\Component\Validator\Exception\MissingOptionsException;
 
+
 /**
- * This is the class that loads and manages your bundle configuration.
- *
- * @link http://symfony.com/doc/current/cookbook/bundles/extension.html
+ * Class IbrowsBoxalinoExtension
+ * @package Ibrows\BoxalinoBundle\DependencyInjection
+ * @author Yorkie Chadwick <y.chadwick@networking.ch>
  */
 class IbrowsBoxalinoExtension extends Extension
 {

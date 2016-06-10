@@ -1,13 +1,4 @@
 <?php
-/**
- * This file is part of the schuler-shop  package.
- *
- * (c) net working AG <info@networking.ch>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
-
 namespace Ibrows\BoxalinoBundle\Mapper\ORM;
 
 
@@ -18,6 +9,11 @@ use Ibrows\BoxalinoBundle\Mapper\FieldMap;
 use Ibrows\BoxalinoBundle\Mapper\TranslatableFieldMap;
 use Gedmo\Translatable\Mapping\Event\Adapter\ORM as TranslatableAdapter;
 
+/**
+ * Class TranslatableEntityMapper
+ * @package Ibrows\BoxalinoBundle\Mapper\ORM
+ * @author Yorkie Chadwick <y.chadwick@networking.ch>
+ */
 class TranslatableEntityMapper extends EntityMapper
 {
 
@@ -58,7 +54,7 @@ class TranslatableEntityMapper extends EntityMapper
 
 
     /**
-     * @inherit
+     * {@inheritDoc}
      */
     public function getEntityMap($entity)
     {
@@ -67,7 +63,7 @@ class TranslatableEntityMapper extends EntityMapper
 
         $this->entityMap = new EntityMap();
 
-        /** @var \Doctrine\Common\Persistence\Mapping\ClassMetadata $object */
+        /** @var \Doctrine\ORM\Mapping\ClassMetadata $classMetadata */
         $classMetadata = $this->metadataFactory->getMetadataFor($class);
 
         $this->entityMap->setCsvName($classMetadata->getTableName());

@@ -1,21 +1,17 @@
 <?php
-/**
- * This file is part of the schuler-shop  package.
- *
- * (c) net working AG <info@networking.ch>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
-
 namespace Ibrows\BoxalinoBundle\Mapper;
 
 use Gedmo\Translatable\Mapping\Event\TranslatableAdapter;
 
+/**
+ * Class TranslatableFieldMap
+ * @package Ibrows\BoxalinoBundle\Mapper
+ * @author Yorkie Chadwick <y.chadwick@networking.ch>
+ */
 class TranslatableFieldMap extends FieldMap
 {
     /**
-     * @var
+     * @var string
      */
     protected $locale;
 
@@ -30,12 +26,12 @@ class TranslatableFieldMap extends FieldMap
     protected $adapter;
 
     /**
-     * @var
+     * @var string
      */
     protected $class;
 
     /**
-     * @return mixed
+     * @return string
      */
     public function getLocale()
     {
@@ -73,7 +69,7 @@ class TranslatableFieldMap extends FieldMap
     }
 
     /**
-     * @return mixed
+     * @return string
      */
     public function getTranslatableClass()
     {
@@ -92,7 +88,7 @@ class TranslatableFieldMap extends FieldMap
     }
 
     /**
-     * @return mixed
+     * @return string
      */
     public function getClass()
     {

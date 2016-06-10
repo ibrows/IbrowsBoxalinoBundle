@@ -1,12 +1,4 @@
 <?php
-/**
- * This file is part of the boxalinosandbox  package.
- *
- * (c) net working AG <info@networking.ch>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
 
 namespace Ibrows\BoxalinoBundle\Entity;
 
@@ -17,6 +9,11 @@ use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\EntityRepository;
 use Ibrows\BoxalinoBundle\Model\ExportLogManagerInterface;
 
+/**
+ * Class ExportLogManager
+ * @package Ibrows\BoxalinoBundle\Entity
+ * @author Yorkie Chadwick <y.chadwick@networking.ch>
+ */
 class ExportLogManager implements ExportLogManagerInterface
 {
     /**
@@ -32,15 +29,25 @@ class ExportLogManager implements ExportLogManagerInterface
         $this->em = $em;
     }
 
+    /**
+     * @param $className
+     * @param $type
+     * @return bool
+     * @throws \Exception
+     */
     public function createLogEntry($className, $type)
     {
         $exportLog = new ExportLog();
         $exportLog->setEntity($className)
             ->setType($type)
             ->setExecutedAt(new \DateTime());
-        $this->save($exportLog);
+        return $this->save($exportLog);
     }
 
+    /**
+     * @param $entity
+     * @return \DateTime|null
+     */
     public function getLastExportDateTime($entity)
     {
         $exportLog =  $this->findOneBy(array('entity' => $entity), array('executedAt' => 'DESC'));
@@ -54,7 +61,9 @@ class ExportLogManager implements ExportLogManagerInterface
     }
 
     /**
-     * {@inheritdoc}
+     * @param array $criteria
+     * @param array|null $orderBy
+     * @return ExportLog
      */
     public function findOneBy(array $criteria, array $orderBy = null)
     {
@@ -62,15 +71,22 @@ class ExportLogManager implements ExportLogManagerInterface
     }
 
     /**
-     * {@inheritdoc}
+     * @param $entity
+     * @param bool $andFlush
+     * @return bool
+     * @throws \Exception
      */
     public function save($entity, $andFlush = true)
     {
+        try{
+            $this->em->persist($entity);
 
-        $this->em->persist($entity);
-
-        if ($andFlush) {
-            $this->em->flush();
+            if ($andFlush) {
+                $this->em->flush();
+            }
+            return true;
+        }catch (\Exception $e){
+            throw new \Exception('Failed to save log entry', null, $e);
         }
     }
 }

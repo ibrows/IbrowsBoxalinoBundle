@@ -1,13 +1,4 @@
 <?php
-/**
- * This file is part of the boxalinosandbox  package.
- *
- * (c) net working AG <info@networking.ch>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
-
 namespace Ibrows\BoxalinoBundle\Mapper\ORM;
 
 use Doctrine\ORM\EntityManager;
@@ -65,7 +56,7 @@ class EntityMapper implements EntityMapperInterface
 
         $this->entityMap = new EntityMap();
 
-        /** @var \Doctrine\Common\Persistence\Mapping\ClassMetadata $object */
+        /** @var \Doctrine\ORM\Mapping\ClassMetadata $classMetadata */
         $classMetadata = $this->metadataFactory->getMetadataFor($class);
 
 

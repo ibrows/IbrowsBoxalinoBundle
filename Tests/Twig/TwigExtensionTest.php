@@ -59,13 +59,17 @@ class TwigExtensionTest extends \PHPUnit_Framework_TestCase
 
     public function testBoxalinoTracker()
     {
-        $trackerCode = self::$twigExtension->getBoxalinoTracker(self::$twigEnvironment, 'viewProduct', '2', array
-        ('filter' => 1));
+        $trackActions = array(
+            'viewProduct' => array(
+                'product' => 2
+            )
+        );
+
+        $trackerCode = self::$twigExtension->getBoxalinoTracker(self::$twigEnvironment, $trackActions);
 
         $this->assertSame(150, strpos($trackerCode, '_bxq.push([\'trackPageView\']);'), 'Tracker code created
         successfully');
         $this->assertSame(224, strpos($trackerCode, 'trackViewProduct'), 'Action added Correctly');
-        $this->assertSame(248, strpos($trackerCode, '{"filter":1}]'), 'Filter added Correctly');
 
     }
 
@@ -92,7 +96,7 @@ class TwigExtensionTest extends \PHPUnit_Framework_TestCase
 
     public function testGetAction()
     {
-        $this->assertSame('trackMyAction', self::$twigExtension->getAction('my_action'), 'Track action correctly created');
+        $this->assertSame('trackMyAction', self::$twigExtension->getPromiseName('my_action'), 'Track action correctly created');
     }
 
     public function testGetFunctions()

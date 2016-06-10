@@ -25,9 +25,21 @@ use Symfony\Component\HttpFoundation\RequestStack;
 class HttpP13nHelper
 {
 
+    /**
+     *
+     */
     const FACET_TYPE_PRICE = 'price';
+    /**
+     *
+     */
     const FACET_TYPE_RANGE = 'range';
+    /**
+     *
+     */
     const FACET_TYPE_CATEGORY = 'category';
+    /**
+     *
+     */
     const FACET_TYPE_STRING = 'string';
     /**
      * @var BoxalinoClient
@@ -155,6 +167,17 @@ class HttpP13nHelper
         return $this->getResponse();
     }
 
+    /**
+     * @param array $returnFields
+     * @param null $queryText
+     * @param int $offset
+     * @param int $hitCount
+     * @param array $filters
+     * @param array $facets
+     * @param array $sortFields
+     * @param bool $orFilters
+     * @return BxSearchRequest
+     */
     public function createSearchRequest(array $returnFields, $queryText = null, $offset = 0, $hitCount = 12,
                                         $filters = array(), $facets = array(), $sortFields = array(), $orFilters = false)
     {

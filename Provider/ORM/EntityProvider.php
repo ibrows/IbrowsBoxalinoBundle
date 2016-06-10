@@ -1,18 +1,14 @@
 <?php
-/**
- * This file is part of the boxalinosandbox  package.
- *
- * (c) net working AG <info@networking.ch>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
-
 namespace Ibrows\BoxalinoBundle\Provider\ORM;
 
 use Doctrine\ORM\EntityManager;
 use Ibrows\BoxalinoBundle\Provider\EntityProviderInterface;
 
+/**
+ * Class EntityProvider
+ * @package Ibrows\BoxalinoBundle\Provider\ORM
+ * @author Yorkie Chadwick <y.chadwick@networking.ch>
+ */
 class EntityProvider implements EntityProviderInterface
 {
 
@@ -25,7 +21,7 @@ class EntityProvider implements EntityProviderInterface
      * EntityProvider constructor.
      * @param EntityManager $em
      */
-    public function __construct(EntityManager  $em)
+    public function __construct(EntityManager $em)
     {
         $this->em = $em;
     }

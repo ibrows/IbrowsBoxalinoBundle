@@ -1,13 +1,4 @@
 <?php
-/**
- * This file is part of the boxalinosandbox  package.
- *
- * (c) net working AG <info@networking.ch>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
-
 namespace Ibrows\BoxalinoBundle\Provider\ORM;
 
 
@@ -15,9 +6,13 @@ use Doctrine\ORM\EntityManager;
 use Ibrows\BoxalinoBundle\Model\DeltaTimestampableInterface;
 use Ibrows\BoxalinoBundle\Provider\DeltaProviderInterface;
 
+/**
+ * Class DeltaProvider
+ * @package Ibrows\BoxalinoBundle\Provider\ORM
+ * @author Yorkie Chadwick <y.chadwick@networking.ch>
+ */
 class DeltaProvider implements DeltaProviderInterface
 {
-    protected $deltaEntities;
 
     /**
      * @var EntityManager
@@ -53,6 +48,8 @@ class DeltaProvider implements DeltaProviderInterface
         if ($strategy === 'fromFullData') {
             return $this->getFromFullData($dateTime, $className);
         }
+
+        return array();
     }
 
     /**

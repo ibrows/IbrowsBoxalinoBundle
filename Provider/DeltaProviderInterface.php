@@ -1,16 +1,12 @@
 <?php
-/**
- * This file is part of the boxalinosandbox  package.
- *
- * (c) net working AG <info@networking.ch>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
 
 namespace Ibrows\BoxalinoBundle\Provider;
 
 
+/**
+ * Interface DeltaProviderInterface
+ * @package Ibrows\BoxalinoBundle\Provider
+ */
 interface DeltaProviderInterface
 {
 
@@ -19,7 +15,7 @@ interface DeltaProviderInterface
      * @param $className
      * @param $strategy
      * @param $strategyOptions
-     * @return mixed
+     * @return array
      */
     public function getDeltaEntities(\DateTime $dateTime, $className, $strategy, $strategyOptions);
 }

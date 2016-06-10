@@ -8,18 +8,24 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 /**
- * This file is part of the boxalinosandbox  package.
- *
- * (c) iBrows <info@networking.ch>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * Class ExportEntitiesCommand
+ * @package Ibrows\BoxalinoBundle\Command
+ * @author Yorkie Chadwick <y.chadwick@networking.ch>
  */
 class ExportEntitiesCommand extends ContainerAwareCommand
 {
+    /**
+     *
+     */
     const SYNC_FULL = 'full';
+    /**
+     *
+     */
     const SYNC_DELTA = 'delta';
 
+    /**
+     * @var array
+     */
     protected $syncStrategies = array('full', 'delta');
 
     /**
