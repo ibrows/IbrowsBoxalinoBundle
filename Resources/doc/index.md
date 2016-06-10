@@ -7,6 +7,7 @@ Index
 * [Manual publishing of the entites][4]
 * [Setting up autocompletion][5] 
 * [Removal of boxalino fields][6]
+* [Twig functions][7]
 
 
 [1]: https://ibrows.codebasehq.com/projects/ibrowsch/repositories/ibrowsboxalinobundle/blob/master/Resources/doc/properties_xml.md
@@ -15,3 +16,4 @@ Index
 [4]: https://ibrows.codebasehq.com/projects/ibrowsch/repositories/ibrowsboxalinobundle/blob/master/Resources/doc/manual_publish.md
 [5]: https://ibrows.codebasehq.com/projects/ibrowsch/repositories/ibrowsboxalinobundle/blob/master/Resources/doc/autocomplete_setup.md
 [6]: https://ibrows.codebasehq.com/projects/ibrowsch/repositories/ibrowsboxalinobundle/blob/master/Resources/doc/remove_boxalino_field.md
+[7]: https://ibrows.codebasehq.com/projects/ibrowsch/repositories/ibrowsboxalinobundle/blob/master/Resources/doc/twig_functions.md
