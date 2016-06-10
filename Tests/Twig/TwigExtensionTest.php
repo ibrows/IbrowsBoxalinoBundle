@@ -1,13 +1,4 @@
 <?php
-/**
- * This file is part of the go-do-it  package.
- *
- * (c) net working AG <info@networking.ch>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
-
 namespace Ibrows\BoxalinoBundle\Tests\Twig;
 
 
@@ -15,6 +6,11 @@ use Ibrows\BoxalinoBundle\Twig\TwigExtension;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 
+/**
+ * Class TwigExtensionTest
+ * @package Ibrows\BoxalinoBundle\Tests\Twig
+ * @author Yorkie Chadwick <y.chadwick@networking.ch>
+ */
 class TwigExtensionTest extends \PHPUnit_Framework_TestCase
 {
     /**
@@ -23,10 +19,13 @@ class TwigExtensionTest extends \PHPUnit_Framework_TestCase
     protected static $twigExtension;
 
     /**
-     * @var
+     * @var \Twig_Environment
      */
     protected static $twigEnvironment;
 
+    /**
+     * @throws \Twig_Error_Loader
+     */
     public static function setUpBeforeClass()
     {
         self::$twigExtension = new TwigExtension();
@@ -37,6 +36,9 @@ class TwigExtensionTest extends \PHPUnit_Framework_TestCase
         self::$twigEnvironment->setLoader($twigLoader);
     }
 
+    /**
+     *
+     */
     public function testSetAccount()
     {
         self::$twigExtension->setAccount('test');
@@ -44,6 +46,9 @@ class TwigExtensionTest extends \PHPUnit_Framework_TestCase
         $this->assertSame('test', self::$twigExtension->getAccount(), 'Account set');
     }
 
+    /**
+     *
+     */
     public function testSetRequest()
     {
 
@@ -61,6 +66,9 @@ class TwigExtensionTest extends \PHPUnit_Framework_TestCase
         $this->assertSame('searched for term', $searchTerm, 'Search term is set on the request object');
     }
 
+    /**
+     *
+     */
     public function testBoxalinoTracker()
     {
         $trackActions = array(
@@ -76,6 +84,9 @@ class TwigExtensionTest extends \PHPUnit_Framework_TestCase
 
     }
 
+    /**
+     *
+     */
     public function testBoxalinoSearchTracker()
     {
         $trackerCode = self::$twigExtension->getBoxalinoSearchTracker(self::$twigEnvironment, 'search');
@@ -84,23 +95,35 @@ class TwigExtensionTest extends \PHPUnit_Framework_TestCase
 
     }
 
+    /**
+     *
+     */
     public function testCamelize()
     {
         $twigExtension = self::$twigExtension;
         $this->assertSame('thisIsCamelized', $twigExtension::camelize('this_is_camelized'), 'Text is camelized');
     }
 
+    /**
+     *
+     */
     public function testClassify()
     {
         $twigExtension = self::$twigExtension;
         $this->assertSame('ThisIsClassified', $twigExtension::classify('this_is_classified'), 'Text is classified');
     }
 
+    /**
+     *
+     */
     public function testGetAction()
     {
         $this->assertSame('trackMyAction', self::$twigExtension->getPromiseName('my_action'), 'Track action correctly created');
     }
 
+    /**
+     *
+     */
     public function testGetFunctions()
     {
         $functions = self::$twigExtension->getFunctions();
@@ -108,6 +131,9 @@ class TwigExtensionTest extends \PHPUnit_Framework_TestCase
         $this->assertSame(4, count($functions), '4 twig functions available');
     }
 
+    /**
+     *
+     */
     public function testGetName()
     {
         $this->assertSame('ibrows_boxalino_extension', self::$twigExtension->getName(), 'Extension name correct');
