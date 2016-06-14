@@ -200,9 +200,9 @@ class HttpP13nHelper
     }
 
     /**
-     * @param BxSearchRequest $bxRequest
+     * @param BxRequest $bxRequest
      */
-    public function addRequest(BxSearchRequest $bxRequest)
+    public function addRequest(BxRequest $bxRequest)
     {
         $this->getClient()->addRequest($bxRequest);
     }
@@ -295,9 +295,14 @@ class HttpP13nHelper
      * @return \com\boxalino\bxclient\v1\BxChooseResponse
      */
     public function findRawRecommendations(array $returnFields, $id, $offset = 0, $hitCount = 5,
-                                           $fieldName = 'id', $contexts = array('search'), $filters = array())
+                                           $fieldName = 'id', $contexts = array('similar'), $filters = array())
     {
-        $this->createRawRecommendationsRequests($returnFields, $id, $offset, $hitCount, $fieldName, $contexts, $filters);
+        $recommendationRequests = $this->createRawRecommendationsRequests($returnFields, $id, $offset, $hitCount,
+        $fieldName, $contexts, $filters);
+
+        foreach ($recommendationRequests as $recommendationRequest){
+            $this->addRequest($recommendationRequest);
+        }
 
         return $this->getResponse();
     }
@@ -311,26 +316,28 @@ class HttpP13nHelper
      * @param string $fieldName
      * @param array $contexts
      * @param array $filters
-     * @return BoxalinoClient
+     * @return array
      */
     public function createRawRecommendationsRequests(array $returnFields, $id, $offset = 0, $hitCount = 5,
-                                           $fieldName = 'id', $contexts = array('search'), $filters = array())
+                                           $fieldName = 'id', $contexts = array('similar'), $filters = array())
     {
+        $requests = array();
         foreach ($contexts as $context) {
             $bxRequestSimilar = new BxRecommendationRequest($this->language, $context, $hitCount);
             $bxRequestSimilar->setOffset($offset);
             $bxRequestSimilar->setReturnFields($returnFields);
-            //indicate the product the user is looking at now (reference of what the recommendations need to be similar to)
-            $bxRequestSimilar->setProductContext($fieldName, $id);
+            if($id){
+                //indicate the product the user is looking at now (reference of what the recommendations need to be similar to)
+                $bxRequestSimilar->setProductContext($fieldName, $id);
+            }
 
             foreach ($filters as $filter) {
                 $this->addFilter($bxRequestSimilar, $filter);
             }
-            //add the request
-            $this->getClient()->addRequest($bxRequestSimilar);
+            $requests[] = $bxRequestSimilar;
         }
 
-        return $this->getClient();
+        return $requests;
     }
 
     /**
