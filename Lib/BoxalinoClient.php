@@ -53,6 +53,11 @@ class BoxalinoClient extends BxClient
         $this->profileId = $profileId;
     }
 
+    public function resetResponses()
+    {
+        $this->chooseResponses = array();
+    }
+
 
     /**
      * @return array
