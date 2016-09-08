@@ -17,7 +17,7 @@
     "doctrine/orm": "<=2.5",
     "doctrine/dbal": "<=2.5",
     "doctrine/doctrine-bundle": "~1.4",
-    "ychadwick/boxalino-client-SDK-php": "v1.0"
+    "ychadwick/boxalino-client-SDK-php": "^1.0"
   },
   "require-dev": {
     "doctrine/doctrine-fixtures-bundle": "v2.2.0",
