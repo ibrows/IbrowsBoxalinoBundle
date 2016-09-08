@@ -1,8 +1,8 @@
 <?xml version="1.0" ?>
 
 <container xmlns="http://symfony.com/schema/dic/services"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
     <parameters>
         <parameter key="ibrows_boxalino.client.http_p13n_helper.class">Ibrows\BoxalinoBundle\Helper\HttpP13nHelper</parameter>
         <parameter key="ibrows_boxalino.exporter.exporter.class">Ibrows\BoxalinoBundle\Exporter\Exporter</parameter>
@@ -27,12 +27,8 @@
         </service>
 
         <service class="%ibrows_boxalino.twig.twig_extension.class%" id="ibrows_boxalino.twig.twig_extension">
-            <call method="setAccount">
-                <argument>%ibrows_boxalino.access.account%</argument>
-            </call>
-            <call method="setRequest">
-                <argument type="service" id="request_stack"/>
-            </call>
+            <argument>%ibrows_boxalino.access.account%</argument>
+            <argument type="service" id="request_stack"/>
             <tag name="twig.extension"/>
         </service>
 

@@ -12,15 +12,20 @@ use Symfony\Component\HttpFoundation\RequestStack;
  */
 class TwigExtension extends \Twig_Extension
 {
-    /**
-     * @var string
-     */
     private $account;
+    private $requestStack;
 
     /**
-     * @var Request
+     * Constructor.
+     *
+     * @param string       $account      The account name
+     * @param RequestStack $requestStack The Symfony request stack
      */
-    private $request;
+    public function __construct($account, RequestStack $requestStack)
+    {
+        $this->account = $account;
+        $this->requestStack = $requestStack;
+    }
 
     /**
      * @return array
@@ -79,7 +84,8 @@ class TwigExtension extends \Twig_Extension
             $filterkeys = array($filterkeys);
         }
         $filters = $this->getSearchFilterValues($filterkeys);
-        $searchTerm = $this->escape($env, $this->request->get($searchTermKey));
+        $request = $this->getRequest();
+        $searchTerm = $this->escape($env, $request->get($searchTermKey));
 
         if ($searchTerm) {
 
@@ -105,18 +111,17 @@ class TwigExtension extends \Twig_Extension
      * @param array $filterKeys
      * @return array
      */
-    protected function getSearchFilterValues(array $filterKeys){
+    protected function getSearchFilterValues(array $filterKeys)
+    {
+        $request = $this->getRequest();
 
         $filters = array();
         foreach ($filterKeys as  $filterKey) {
-
-            $filterValue = $this->request->get($filterKey, null);
-
-            if(!$filterValue){
+            if (!$filterValue = $request->get($filterKey)) {
                 continue;
             }
 
-            if($filterKey === 'categories'){
+            if ('categories' === $filterKey) {
                 $filterKey = 'hrc_'.$filterKey;
             }
 
@@ -298,31 +303,11 @@ class TwigExtension extends \Twig_Extension
     }
 
     /**
-     * @param $account
-     * @return $this
-     */
-    public function setAccount($account)
-    {
-        $this->account = $account;
-        return $this;
-    }
-
-    /**
      * @return Request
      */
     public function getRequest()
     {
-        return $this->request;
-    }
-
-    /**
-     * @param RequestStack $requestStack
-     * @return $this
-     */
-    public function setRequest(RequestStack $requestStack)
-    {
-        $this->request = $requestStack->getCurrentRequest();
-        return $this;
+        return $this->requestStack->getCurrentRequest();
     }
 
     /**
