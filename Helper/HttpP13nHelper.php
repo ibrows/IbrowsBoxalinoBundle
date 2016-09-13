@@ -403,11 +403,9 @@ class HttpP13nHelper
 
     /**
      * @param BxRequest $bxRequest
-     * @param $facets
-     * @param null $label
-     * @param int $order
+     * @param array $facets
      */
-    protected function setFacets(BxRequest $bxRequest, $facets, $label = null, $order = 0)
+    protected function setFacets(BxRequest $bxRequest, array $facets)
     {
         $bxFacets = new BxFacets();
 
@@ -415,12 +413,16 @@ class HttpP13nHelper
             $selectedValue = array_key_exists('values', $facet) ? $facet['values'] : null;
             $type = array_key_exists('type', $facet) ? $facet['type'] : self::FACET_TYPE_STRING;
 
+            $label = array_key_exists('label', $facet)?$facet['label']:null;
+            $order = array_key_exists('order', $facet)?$facet['order']:0;
+            $boundsOnly = array_key_exists('boundsOnly', $facet)?$facet['boundsOnly']:false;
+
             switch ($type){
                 case self::FACET_TYPE_PRICE:
                     $bxFacets->addPriceRangeFacet($selectedValue, $order, $label, $facet['fieldName']);
                     break;
                 case self::FACET_TYPE_RANGE:
-                    $bxFacets->addRangedFacet($facet['fieldName'], $selectedValue, $label, $order);
+                    $bxFacets->addRangedFacet($facet['fieldName'], $selectedValue, $label, $order, $boundsOnly);
                     break;
                 case self::FACET_TYPE_CATEGORY:
                     $bxFacets->addCategoryFacet($selectedValue, $order);
