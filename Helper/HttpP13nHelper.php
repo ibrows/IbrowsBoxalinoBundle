@@ -414,7 +414,7 @@ class HttpP13nHelper
             $type = array_key_exists('type', $facet) ? $facet['type'] : self::FACET_TYPE_STRING;
 
             $label = array_key_exists('label', $facet)?$facet['label']:null;
-            $order = array_key_exists('order', $facet)?$facet['order']:0;
+            $order = array_key_exists('order', $facet)?$facet['order']:2;
             $boundsOnly = array_key_exists('boundsOnly', $facet)?$facet['boundsOnly']:false;
 
             switch ($type){
@@ -428,7 +428,7 @@ class HttpP13nHelper
                     $bxFacets->addCategoryFacet($selectedValue, $order);
                     break;
                 case self::FACET_TYPE_STRING:
-                    $bxFacets->addFacet($facet['fieldName'], $selectedValue, $type, $label, $order);
+                    $bxFacets->addFacet($facet['fieldName'], $selectedValue, $type, $label, $order, $boundsOnly);
                     break;
             }
 
