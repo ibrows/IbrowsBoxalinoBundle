@@ -30,9 +30,11 @@ class IbrowsBoxalinoExtension extends Extension
         $loader = new Loader\XmlFileLoader($container, new FileLocator(__DIR__ . '/../Resources/config'));
 
         if ($config['export']['properties_xml'] && !file_exists($config['export']['properties_xml'])) {
-            throw new InvalidArgumentException(sprintf('The properties xml file was not found at path %s',
-                $config['export']['properties_xml']));
+            if(strpos($config['export']['properties_xml'], $container->getParameter('kernel.cache_dir')) === false){
+                throw new InvalidArgumentException(sprintf('The properties xml file was not found at path %s',$config['export']['properties_xml']));
+            }
         }
+
         $this->registerContainerParametersRecursive($container, $this->getAlias(), $config);
 
         if (array_key_exists('entities', $config)) {
