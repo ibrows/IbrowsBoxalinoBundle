@@ -16,6 +16,8 @@
             <argument>%ibrows_boxalino.access.account%</argument>
             <argument>%ibrows_boxalino.access.username%</argument>
             <argument>%ibrows_boxalino.access.password%</argument>
+            <argument>%ibrows_boxalino.access.apiKey%</argument>
+            <argument>%ibrows_boxalino.access.apiSecret%</argument>
         </service>
 
         <service class="%ibrows_boxalino.exporter.exporter.class%" id="ibrows_boxalino.exporter.exporter">

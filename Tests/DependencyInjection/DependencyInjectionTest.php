@@ -19,6 +19,8 @@ class DependencyInjectionTest extends \PHPUnit_Framework_TestCase
             'account' => "test",
             'username' => "test",
             'password' => "test",
+            'apiKey' => "the-api-key",
+            'apiSecret' => "super-secret",
         ),
         'export' => array(
             'directory' => "../var/boxalino/"
@@ -57,6 +59,8 @@ class DependencyInjectionTest extends \PHPUnit_Framework_TestCase
         $this->assertTrue($container->hasParameter('ibrows_boxalino.access.account'), 'The account is set');
         $this->assertTrue($container->hasParameter('ibrows_boxalino.access.username'), 'The username is set');
         $this->assertTrue($container->hasParameter('ibrows_boxalino.access.password'), 'The password is set');
+        $this->assertTrue($container->hasParameter('ibrows_boxalino.access.apiKey'), 'The apiKey is set');
+        $this->assertTrue($container->hasParameter('ibrows_boxalino.access.apiSecret'), 'The apiSecret is set');
     }
 
     public function testExportConfig()

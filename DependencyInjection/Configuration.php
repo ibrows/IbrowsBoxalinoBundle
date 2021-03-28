@@ -47,6 +47,8 @@ class Configuration implements ConfigurationInterface
                         ->scalarNode('account')->isRequired()->cannotBeEmpty()->end()
                         ->scalarNode('username')->isRequired()->cannotBeEmpty()->end()
                         ->scalarNode('password')->isRequired()->cannotBeEmpty()->end()
+                        ->scalarNode('apiKey')->defaultValue(null)->end()
+                        ->scalarNode('apiSecret')->defaultValue(null)->end()
                     ->end()
                 ->end()
                 ->arrayNode('export')
