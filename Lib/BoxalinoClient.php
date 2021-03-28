@@ -46,12 +46,4 @@ class BoxalinoClient extends BxClient
     {
         $this->chooseResponses = array();
     }
-
-    /**
-     * @return array
-     */
-    protected function getSessionAndProfile()
-    {
-        return array($this->sessionId, $this->profileId);
-    }
 }
