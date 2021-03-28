@@ -1,24 +1,13 @@
 <?php
+
 namespace Ibrows\BoxalinoBundle\Lib;
 
 use com\boxalino\bxclient\v1\BxClient;
 
-/**
- * Class BxClient
- * @package Ibrows\BoxalinoBundle\Lib
- * @author Yorkie Chadwick <y.chadwick@networking.ch>
- */
 class BoxalinoClient extends BxClient
 {
-
-
-    /**
-     * @var
-     */
     protected $sessionId;
-    /**
-     * @var
-     */
+
     protected $profileId;
 
     /**
@@ -58,11 +47,11 @@ class BoxalinoClient extends BxClient
         $this->chooseResponses = array();
     }
 
-
     /**
      * @return array
      */
-    protected function getSessionAndProfile() {
+    protected function getSessionAndProfile()
+    {
         return array($this->sessionId, $this->profileId);
     }
 }

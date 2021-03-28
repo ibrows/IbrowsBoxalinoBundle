@@ -1,4 +1,5 @@
 <?php
+
 namespace Ibrows\BoxalinoBundle\Helper;
 
 use com\boxalino\bxclient\v1\BxAutocompleteRequest;
@@ -17,30 +18,28 @@ use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 
-/**
- * Class HttpP13nService
- * @package Ibrows\BoxalinoBundle\Client
- * @author Yorkie Chadwick <y.chadwick@networking.ch>
- */
 class HttpP13nHelper
 {
-
     /**
-     *
+     * @var string
      */
     const FACET_TYPE_PRICE = 'price';
+
     /**
-     *
+     * @var string
      */
     const FACET_TYPE_RANGE = 'range';
+
     /**
-     *
+     * @var string
      */
     const FACET_TYPE_CATEGORY = 'category';
+
     /**
-     *
+     * @var string
      */
     const FACET_TYPE_STRING = 'string';
+
     /**
      * @var BoxalinoClient
      */
@@ -117,17 +116,36 @@ class HttpP13nHelper
     protected $cemvCookie;
 
     /**
-     * HttpP13nHelper constructor.
+     * @var string|null
+     */
+    private $apiKey;
+
+    /**
+     * @var string|null
+     */
+    private $apiSecret;
+
+    /**
      * @param RequestStack $requestStack
      * @param $account
      * @param $username
      * @param $password
+     * @param string|null $apiKey
+     * @param string|null $apiSecret
      */
-    public function __construct(RequestStack $requestStack, $account, $username, $password)
-    {
+    public function __construct(
+        RequestStack $requestStack,
+        $account,
+        $username,
+        $password,
+        $apiKey = null,
+        $apiSecret = null
+    ) {
         $this->account = $account;
         $this->username = $username;
         $this->password = $password;
+        $this->apiKey = $apiKey;
+        $this->apiSecret = $apiSecret;
         $this->setRequest($requestStack);
     }
 
@@ -153,13 +171,29 @@ class HttpP13nHelper
      * @param array $facets
      * @param array $sortFields
      * @param bool|false $orFilters
+     *
      * @return \com\boxalino\bxclient\v1\BxChooseResponse
      */
-    public function search(array $returnFields, $queryText = null, $offset = 0, $hitCount = 12,
-                           $filters = array(), $facets = array(), $sortFields = array(), $orFilters = false)
-    {
-        $bxRequest = $this->createSearchRequest($returnFields, $queryText, $offset, $hitCount, $filters, $facets,
-            $sortFields, $orFilters);
+    public function search(
+        array $returnFields,
+        $queryText = null,
+        $offset = 0,
+        $hitCount = 12,
+        $filters = array(),
+        $facets = array(),
+        $sortFields = array(),
+        $orFilters = false
+    ) {
+        $bxRequest = $this->createSearchRequest(
+            $returnFields,
+            $queryText,
+            $offset,
+            $hitCount,
+            $filters,
+            $facets,
+            $sortFields,
+            $orFilters
+        );
 
         $this->addRequest($bxRequest);
 
@@ -176,11 +210,19 @@ class HttpP13nHelper
      * @param array $facets
      * @param array $sortFields
      * @param bool $orFilters
+     *
      * @return BxSearchRequest
      */
-    public function createSearchRequest(array $returnFields, $queryText = null, $offset = 0, $hitCount = 12,
-                                        $filters = array(), $facets = array(), $sortFields = array(), $orFilters = false)
-    {
+    public function createSearchRequest(
+        array $returnFields,
+        $queryText = null,
+        $offset = 0,
+        $hitCount = 12,
+        $filters = array(),
+        $facets = array(),
+        $sortFields = array(),
+        $orFilters = false
+    ) {
         $bxRequest = new BxSearchRequest($this->language, $queryText, $hitCount);
         $bxRequest->setIndexId($this->account);
         $bxRequest->setReturnFields($returnFields);
@@ -213,18 +255,31 @@ class HttpP13nHelper
      * @param int $hitCount
      * @param int $suggestionCount
      * @param array $filters
+     * @param array $properties
+     *
      * @return null
      */
-    public function autocomplete(array $returnFields, $queryText, $hitCount = 5, $suggestionCount = 5, $filters =
-    array(), $properties = array())
-    {
-        $bxAutocompleteRequest = $this->createAutocompleteRequest($returnFields, $queryText, $hitCount, $suggestionCount, $filters);
+    public function autocomplete(
+        array $returnFields,
+        $queryText,
+        $hitCount = 5,
+        $suggestionCount = 5,
+        $filters = array(),
+        $properties = array()
+    ) {
+        $bxAutocompleteRequest = $this->createAutocompleteRequest(
+            $returnFields,
+            $queryText,
+            $hitCount,
+            $suggestionCount,
+            $filters
+        );
 
         foreach ($properties as $property){
             $bxAutocompleteRequest->addPropertyQuery($property, $hitCount, false);
         }
 
-        //make the query to Boxalino server and get back the response for all requests
+        // Make the query to Boxalino server and get back the response for all requests
         return $this->getAutocompleteResponse($bxAutocompleteRequest);
     }
 
@@ -233,14 +288,27 @@ class HttpP13nHelper
      * @param $queryText
      * @param int $hitCount
      * @param int $suggestionCount
+     * @param array $filters
+     *
      * @return BxAutocompleteRequest
      */
-    public function createAutocompleteRequest(array $returnFields, $queryText, $hitCount = 5, $suggestionCount = 5, $filters = array())
-    {
-        $bxRequest = new BxAutocompleteRequest($this->language, $queryText, $hitCount, $suggestionCount,
-            $this->autocompleteWidgetId, $this->searchWidgetId);
+    public function createAutocompleteRequest(
+        array $returnFields,
+        $queryText,
+        $hitCount = 5,
+        $suggestionCount = 5,
+        $filters = array()
+    ) {
+        $bxRequest = new BxAutocompleteRequest(
+            $this->language,
+            $queryText,
+            $hitCount,
+            $suggestionCount,
+            $this->autocompleteWidgetId,
+            $this->searchWidgetId
+        );
 
-        //set the fields to be returned for each item in the response
+        // Set the fields to be returned for each item in the response
         $bxRequest->getBxSearchRequest()->setReturnFields($returnFields);
 
 
@@ -253,6 +321,7 @@ class HttpP13nHelper
 
     /**
      * @param BxAutocompleteRequest $bxAutocompleteRequest
+     *
      * @return null
      */
     public function getAutocompleteResponse(BxAutocompleteRequest $bxAutocompleteRequest)
@@ -264,6 +333,7 @@ class HttpP13nHelper
 
     /**
      * @param array $requests
+     *
      * @return AutocompleteResponse
      */
     public function getAutocompleteResponses(array $requests)
@@ -275,6 +345,7 @@ class HttpP13nHelper
 
     /**
      * @param BxAutocompleteResponse $bxAutocompleteResponse
+     *
      * @return array
      */
     public function getAutocompleteResults(BxAutocompleteResponse $bxAutocompleteResponse)
@@ -292,13 +363,27 @@ class HttpP13nHelper
      * @param string $fieldName
      * @param array $contexts
      * @param array $filters
+     *
      * @return \com\boxalino\bxclient\v1\BxChooseResponse
      */
-    public function findRawRecommendations(array $returnFields, $id, $offset = 0, $hitCount = 5,
-                                           $fieldName = 'id', $contexts = array('similar'), $filters = array())
-    {
-        $recommendationRequests = $this->createRawRecommendationsRequests($returnFields, $id, $offset, $hitCount,
-        $fieldName, $contexts, $filters);
+    public function findRawRecommendations(
+        array $returnFields,
+        $id,
+        $offset = 0,
+        $hitCount = 5,
+        $fieldName = 'id',
+        $contexts = array('similar'),
+        $filters = array()
+    ) {
+        $recommendationRequests = $this->createRawRecommendationsRequests(
+            $returnFields,
+            $id,
+            $offset,
+            $hitCount,
+            $fieldName,
+            $contexts,
+            $filters
+        );
 
         foreach ($recommendationRequests as $recommendationRequest){
             $this->addRequest($recommendationRequest);
@@ -306,7 +391,6 @@ class HttpP13nHelper
 
         return $this->getResponse();
     }
-
 
     /**
      * @param array $returnFields
@@ -316,17 +400,24 @@ class HttpP13nHelper
      * @param string $fieldName
      * @param array $contexts
      * @param array $filters
+     *
      * @return array
      */
-    public function createRawRecommendationsRequests(array $returnFields, $id, $offset = 0, $hitCount = 5,
-                                           $fieldName = 'id', $contexts = array('similar'), $filters = array())
-    {
+    public function createRawRecommendationsRequests(
+        array $returnFields,
+        $id,
+        $offset = 0,
+        $hitCount = 5,
+        $fieldName = 'id',
+        $contexts = array('similar'),
+        $filters = array()
+    ) {
         $requests = array();
         foreach ($contexts as $context) {
             $bxRequestSimilar = new BxRecommendationRequest($this->language, $context, $hitCount);
             $bxRequestSimilar->setOffset($offset);
             $bxRequestSimilar->setReturnFields($returnFields);
-            if($id){
+            if ($id) {
                 //indicate the product the user is looking at now (reference of what the recommendations need to be similar to)
                 $bxRequestSimilar->setProductContext($fieldName, $id);
             }
@@ -345,6 +436,7 @@ class HttpP13nHelper
      *
      * @param BxChooseResponse $chooseResponse
      * @param null $choiceId
+     *
      * @return array
      */
     public function getRelaxationSuggestionResults(BxChooseResponse $chooseResponse, $choiceId = null)
@@ -353,10 +445,12 @@ class HttpP13nHelper
         if (!$this->relaxationEnabled) {
             return $suggestions;
         }
+
         $variant = $chooseResponse->getChoiceResponseVariant($choiceId);
         if ($variant->searchRelaxation) {
             $suggestions = $variant->searchRelaxation->suggestionsResults;
         }
+
         return $suggestions;
     }
 
@@ -365,6 +459,7 @@ class HttpP13nHelper
      *
      * @param BxChooseResponse $chooseResponse
      * @param null $choiceId
+     *
      * @return array
      */
     public function getRelaxationSubphraseResults(BxChooseResponse $chooseResponse, $choiceId = null)
@@ -391,7 +486,7 @@ class HttpP13nHelper
         if (!$filter instanceof BxFilter) {
             $selectedValue = array_key_exists('values', $filter) ? $filter['values'] : array();
 
-            if(!is_array($selectedValue)){
+            if (!is_array($selectedValue)) {
                 $selectedValue = array($selectedValue);
             }
 
@@ -413,9 +508,9 @@ class HttpP13nHelper
             $selectedValue = array_key_exists('values', $facet) ? $facet['values'] : null;
             $type = array_key_exists('type', $facet) ? $facet['type'] : self::FACET_TYPE_STRING;
 
-            $label = array_key_exists('label', $facet)?$facet['label']:null;
-            $order = array_key_exists('order', $facet)?$facet['order']:2;
-            $boundsOnly = array_key_exists('boundsOnly', $facet)?$facet['boundsOnly']:false;
+            $label = array_key_exists('label', $facet) ? $facet['label'] : null;
+            $order = array_key_exists('order', $facet) ? $facet['order'] : 2;
+            $boundsOnly = array_key_exists('boundsOnly', $facet) ? $facet['boundsOnly'] : false;
 
             switch ($type){
                 case self::FACET_TYPE_PRICE:
@@ -431,17 +526,16 @@ class HttpP13nHelper
                     $bxFacets->addFacet($facet['fieldName'], $selectedValue, $type, $label, $order, $boundsOnly);
                     break;
             }
-
         }
 
         $bxRequest->setFacets($bxFacets);
-
     }
 
     /**
      * @param BxChooseResponse $chooseResponse
      * @param $fieldName
      * @param null $choiceId
+     *
      * @return array
      */
     public function extractFacet(BxChooseResponse $chooseResponse, $fieldName, $choiceId = null)
@@ -449,12 +543,12 @@ class HttpP13nHelper
         $facets = $chooseResponse->getFacets($choiceId, $this->relaxationEnabled);
 
         return $this->getFacetValues($facets, $fieldName);
-
     }
 
     /**
      * @param BxFacets $facets
      * @param $fieldName
+     *
      * @return array
      */
     protected function getFacetValues(BxFacets $facets, $fieldName)
@@ -478,6 +572,7 @@ class HttpP13nHelper
      * @param BxChooseResponse $chooseResponse
      * @param $fieldName
      * @param null $choiceId
+     *
      * @return array
      */
     public function extractSuggestionFacet(BxChooseResponse $chooseResponse, $fieldName, $choiceId = null)
@@ -496,6 +591,7 @@ class HttpP13nHelper
      * @param BxChooseResponse $chooseResponse
      * @param $fieldName
      * @param null $choiceId
+     *
      * @return array
      */
     public function extractSubphraseFacet(BxChooseResponse $chooseResponse, $fieldName, $choiceId = null)
@@ -522,6 +618,7 @@ class HttpP13nHelper
     /**
      * @param BxChooseResponse $chooseResponse
      * @param null $choiceId
+     *
      * @return \com\boxalino\p13n\api\thrift\SearchResult|null
      */
     public function extractResults(BxChooseResponse $chooseResponse, $choiceId = null)
@@ -530,17 +627,17 @@ class HttpP13nHelper
 
         $results = $chooseResponse->getVariantSearchResult($variant, $this->relaxationEnabled);
 
-        if(is_null($results)){
+        if (is_null($results)) {
             $results = $variant->searchResult;
         }
 
         return $results;
-
     }
 
     /**
      * @param $hits
      * @param array $results
+     *
      * @return array
      */
     public function extractResultsFromHits($hits, &$results = array())
@@ -564,6 +661,7 @@ class HttpP13nHelper
     /**
      * @param $hitsGroups
      * @param array $results
+     *
      * @return array
      */
     public function extractResultsFromHitGroups($hitsGroups, &$results = array())
@@ -585,12 +683,33 @@ class HttpP13nHelper
     public function getClient()
     {
         if (!$this->client) {
-
-            $this->client = new BoxalinoClient(
-                $this->username,
-                $this->password,
-                $this->domain
-            );
+            /**
+             * apiKey and apiSecret used to target the new Cloud environment of Boxalino main.bx-cloud.com instead of
+             * cdn.bx-cloud.com
+             */
+            if (null !== $this->apiKey && null !== $this->apiSecret) {
+                $this->client = new BoxalinoClient(
+                    $this->username,
+                    $this->password,
+                    $this->domain,
+                    false, // default value
+                    null,  // default value
+                    null,  // default value,
+                    null,  // default value
+                    null,  // default value
+                    null,  // default value
+                    null,  // default value
+                    null,  // default value
+                    $this->apiKey,
+                    $this->apiSecret
+                );
+            } else {
+                $this->client = new BoxalinoClient(
+                    $this->username,
+                    $this->password,
+                    $this->domain
+                );
+            }
 
             $this->client->setProfileId($this->getProfileId());
             $this->client->setSessionId($this->getSessionId());
@@ -613,6 +732,7 @@ class HttpP13nHelper
 
     /**
      * @param Request|null $request
+     *
      * @return Cookie
      */
     public function getCemvCookie(Request $request = null)
@@ -628,6 +748,7 @@ class HttpP13nHelper
         }
 
         $this->setCemvCookie($request->cookies->get('cemv', null));
+
         return $this->cemvCookie;
     }
 
@@ -654,6 +775,7 @@ class HttpP13nHelper
 
     /**
      * @param Request|null $request
+     *
      * @return Cookie
      */
     public function getCemsCookie(Request $request = null)
@@ -668,6 +790,7 @@ class HttpP13nHelper
             return '';
         }
         $this->setCemsCookie($request->cookies->get('cems', null));
+
         return $this->cemsCookie;
     }
 
@@ -682,6 +805,7 @@ class HttpP13nHelper
 
     /**
      * @param int $bytes
+     *
      * @return string
      */
     public function generateRandomId($bytes = 16)
@@ -762,5 +886,4 @@ class HttpP13nHelper
     {
         $this->language = substr($language, 0, 2);
     }
-
 }
