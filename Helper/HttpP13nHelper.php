@@ -116,6 +116,11 @@ class HttpP13nHelper
     protected $cemvCookie;
 
     /**
+     * @var boolean
+     */
+    private $isDev;
+
+    /**
      * @var string|null
      */
     private $apiKey;
@@ -130,6 +135,7 @@ class HttpP13nHelper
      * @param $account
      * @param $username
      * @param $password
+     * @param boolean $isDev
      * @param string|null $apiKey
      * @param string|null $apiSecret
      */
@@ -138,12 +144,14 @@ class HttpP13nHelper
         $account,
         $username,
         $password,
+        $isDev,
         $apiKey = null,
         $apiSecret = null
     ) {
         $this->account = $account;
         $this->username = $username;
         $this->password = $password;
+        $this->isDev = $isDev;
         $this->apiKey = $apiKey;
         $this->apiSecret = $apiSecret;
         $this->setRequest($requestStack);
@@ -692,7 +700,7 @@ class HttpP13nHelper
                     $this->username,
                     $this->password,
                     $this->domain,
-                    false, // default value
+                    $this->isDev,
                     null,  // default value
                     null,  // default value,
                     null,  // default value
@@ -707,7 +715,8 @@ class HttpP13nHelper
                 $this->client = new BoxalinoClient(
                     $this->username,
                     $this->password,
-                    $this->domain
+                    $this->domain,
+                    $this->isDev
                 );
             }
 

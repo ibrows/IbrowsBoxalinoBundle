@@ -19,6 +19,7 @@ class DependencyInjectionTest extends \PHPUnit_Framework_TestCase
             'account' => "test",
             'username' => "test",
             'password' => "test",
+            'isDev' => true,
             'apiKey' => "the-api-key",
             'apiSecret' => "super-secret",
         ),
@@ -59,6 +60,9 @@ class DependencyInjectionTest extends \PHPUnit_Framework_TestCase
         $this->assertTrue($container->hasParameter('ibrows_boxalino.access.account'), 'The account is set');
         $this->assertTrue($container->hasParameter('ibrows_boxalino.access.username'), 'The username is set');
         $this->assertTrue($container->hasParameter('ibrows_boxalino.access.password'), 'The password is set');
+        $this->assertTrue($container->hasParameter('ibrows_boxalino.access.isDev')), 'The isDev parameter is set');
+        $this->assertIsBoolean($container->getParameter('ibrows_boxalino.access.isDev'), 'The isDev parameter is a boolean');
+        $this->assertTrue($container->getParameter('ibrows_boxalino.access.isDev'), 'The isDev parameter is true');
         $this->assertTrue($container->hasParameter('ibrows_boxalino.access.apiKey'), 'The apiKey is set');
         $this->assertTrue($container->hasParameter('ibrows_boxalino.access.apiSecret'), 'The apiSecret is set');
     }
