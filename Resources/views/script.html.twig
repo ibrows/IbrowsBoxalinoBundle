@@ -1,14 +1,15 @@
-<script type=”text/javascript”>
-    var _bxq = _bxq || [];
-    _bxq.push(['setAccount', '{{ account }}']);
-    _bxq.push(['trackPageView', '{{ app.request.requestUri|default(null) }}']);
-
+<script type="text/javascript">
     (function(){
         var s = document.createElement('script');
         s.async = 1;
         s.src = '//track.bx-cloud.com/static/bav2.min.js';
         document.getElementsByTagName('head')[0].appendChild(s);
     })();
+
+    var _bxq = _bxq || [];
+
+    _bxq.push(['setAccount', '{{ account }}']);
+    _bxq.push(['trackPageView', '{{ app.request.requestUri|default(null) }}']);
 
     {% for promise in promises %}
     {{ promise|raw }};
