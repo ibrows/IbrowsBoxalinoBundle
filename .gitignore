@@ -3,3 +3,4 @@ coverage
 composer.lock
 Tests/Application/logs
 Tests/Application/cache
+.idea
